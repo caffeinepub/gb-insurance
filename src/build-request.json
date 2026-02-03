@@ -1,0 +1,57 @@
+{
+  "kind": "build_request",
+  "title": "Make the user-provided hero image visible in the app",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Add the user-uploaded image (image-3.png) to the app as a static asset under frontend/public/assets/generated, and update the Home page hero banner to render this exact image so it is visible on the deployed site.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "i want this image which i cannot find in the app"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The hero banner image on the Home page renders the user-provided image (no broken image / fallback behavior triggered).",
+        "The hero banner image URL returns HTTP 200 in the deployed build and is accessible at a stable path under /assets/generated/.",
+        "No console warning appears about the hero image failing to load (i.e., Hero.tsx onError is not triggered under normal load)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Update the HTML preload tag to preload the new hero banner image path (replacing the current preload of /assets/generated/image-2.png) so the correct image is prioritized on first paint.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "i want this image which i cannot find in the app"
+        ]
+      },
+      "acceptanceCriteria": [
+        "frontend/index.html preloads the same hero image asset that Hero.tsx renders.",
+        "The app no longer references /assets/generated/image-2.png for the hero banner (unless used elsewhere intentionally)."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify files under frontend/src/components/ui (compose with them only).",
+    "Do not edit immutable hook paths listed in SYSTEM_CONTEXT.frontend.immutablePaths."
+  ],
+  "nonGoals": [
+    "No backend changes.",
+    "No changes to Internet Identity authentication, admin access control, or dashboard functionality.",
+    "No redesign of the overall site layout beyond swapping the hero banner image asset and its preload reference."
+  ],
+  "imageRequirements": {
+    "required": [
+      "User-provided GB Insurance promotional vehicle montage image (gb-hero-banner.dim_1600x900.png)"
+    ],
+    "edits": []
+  }
+}

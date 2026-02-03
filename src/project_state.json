@@ -1,0 +1,319 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 38,
+  "summary": "GB Insurance is an ICP (Internet Computer) dApp with a public marketing website for an insurance agency and an admin-only dashboard. Visitors can submit insurance inquiry forms (including optional document uploads) without authentication. Administrators authenticate via Internet Identity and, if authorized, can view all customer submissions, download/view uploaded documents, and see derived dashboard stats. The backend is a Motoko canister implementing access control (first eligible user becomes admin via a secret token), customer form storage, basic user profile storage for authenticated users, visitor analytics endpoints, and Caffeine/IC blob-storage management mixins.",
+  "existing_features": [
+    {
+      "id": "IF-1",
+      "title": "Public marketing homepage",
+      "synonyms": [
+        "Landing page",
+        "Home page"
+      ],
+      "description": "Renders a branded homepage (Header, Hero, Services, Support section, Footer) with anchored navigation and GB Insurance gold/navy/white styling.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-2",
+      "title": "Customer insurance inquiry form submission",
+      "synonyms": [
+        "Lead capture form",
+        "Quote request form"
+      ],
+      "description": "Allows visitors to submit name/phone/email/address, select one or more insurance interests, add optional feedback, and submit the form to the backend with client-side validation and success/error toasts.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-3",
+      "title": "Optional document upload with client-side validation",
+      "synonyms": [
+        "Supporting documents upload",
+        "File attachment upload"
+      ],
+      "description": "Supports multiple file attachments (PDF/JPG/PNG/DOC/DOCX), validates per-file size (max 5MB), converts files to ExternalBlob bytes, tracks upload progress via callbacks, and allows removing selected files before submission.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-4",
+      "title": "Backend storage of customer submissions",
+      "synonyms": [
+        "Form persistence",
+        "Submission repository"
+      ],
+      "description": "Motoko backend stores each submission with an auto-incrementing id, timestamp, insurance interests, and uploaded ExternalBlob references; validates required fields and requires at least one interest.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-5",
+      "title": "Internet Identity authentication context",
+      "synonyms": [
+        "II login provider",
+        "AuthClient integration"
+      ],
+      "description": "Provides an app-wide Internet Identity context that initializes an AuthClient, loads existing delegated identity, supports login, and supports logout/clear, exposing status flags for UI flows.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-6",
+      "title": "Per-identity backend actor creation and initialization",
+      "synonyms": [
+        "Actor factory",
+        "Authenticated actor"
+      ],
+      "description": "Creates an anonymous or identity-bound backend actor; for authenticated identities it calls _initializeAccessControlWithSecret using a secret extracted from the URL hash/session to register the caller role in access control.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-7",
+      "title": "Access control: first eligible admin + role checks",
+      "synonyms": [
+        "RBAC",
+        "Admin gating"
+      ],
+      "description": "Backend access control assigns the first authenticated principal who provides the correct secret token as admin; others become users. Admin-only endpoints enforce AccessControl.isAdmin checks and trap on unauthorized access.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-8",
+      "title": "Admin login flow with verification and redirect",
+      "synonyms": [
+        "Admin authentication page",
+        "Admin sign-in"
+      ],
+      "description": "AdminLoginPage guides users through Internet Identity authentication and verifies admin status with retries/timeouts before redirecting to the dashboard, showing progress and error messaging when unauthorized.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-9",
+      "title": "Admin dashboard: list, search, filter, sort, refresh",
+      "synonyms": [
+        "Submissions dashboard",
+        "Admin panel"
+      ],
+      "description": "Dashboard page loads all forms (admin-only), supports client-side search by name/email/phone, filtering by insurance type, sorting by date/name, manual refresh, and automatic polling refresh (30s) with error retry handling.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-10",
+      "title": "Dashboard statistics summary cards",
+      "synonyms": [
+        "Analytics cards",
+        "KPI widgets"
+      ],
+      "description": "Computes and displays derived metrics from loaded forms: total submissions, today's submissions, last 7 days count, and most popular insurance type.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-11",
+      "title": "Dashboard submissions table with document view/download",
+      "synonyms": [
+        "Submissions table",
+        "Document actions"
+      ],
+      "description": "Displays submissions in a scrollable table with formatted timestamps, color-coded insurance interest badges, and per-document actions to open in a new tab or trigger download using blob.getDirectURL().",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-12",
+      "title": "User profile storage and retrieval (authenticated)",
+      "synonyms": [
+        "Admin profile",
+        "Caller profile"
+      ],
+      "description": "Backend supports getCallerUserProfile/saveCallerUserProfile with basic validation; frontend provides React Query hooks with optimistic updates, cache invalidation, and toast feedback. DashboardHeader displays profile name/role when available.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-13",
+      "title": "First-time profile setup modal",
+      "synonyms": [
+        "Profile onboarding",
+        "Admin profile wizard"
+      ],
+      "description": "When an authenticated user has no stored profile, the app shows a blocking ProfileSetup dialog to collect name/email and save an Administrator profile before proceeding.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-14",
+      "title": "Access denied experience for non-admins",
+      "synonyms": [
+        "Unauthorized screen",
+        "Permission denied"
+      ],
+      "description": "Non-admin authenticated users attempting to access the dashboard are shown an AccessDeniedScreen with actions to return home or logout.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-15",
+      "title": "Visitor analytics endpoints (backend)",
+      "synonyms": [
+        "Visitor tracking",
+        "Site analytics"
+      ],
+      "description": "Backend implements recordVisitor(), getVisitorCount() (public), and getVisitorStats() (admin-only) tracking totalVisitors/uniqueVisitors/pageViews/submissions counters; may be used for analytics displays.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-16",
+      "title": "Blob-storage management mixin endpoints",
+      "synonyms": [
+        "Caffeine storage integration",
+        "Blob GC utilities"
+      ],
+      "description": "Backend includes storage mixin endpoints for cashier refill, gateway principal list refresh, blob liveness checks, listing blobs to delete, confirming deletion (with GC trigger), and certificate creation metadata for uploads.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-17",
+      "title": "Global error boundary and toast notifications",
+      "synonyms": [
+        "Resilience UI",
+        "App-wide notifications"
+      ],
+      "description": "Frontend wraps routing in an ErrorBoundary that renders a recoverable error screen; user actions and backend operations surface success/failure via sonner toasts.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-18",
+      "title": "Brand design system with Tailwind tokens and enhanced logo handling",
+      "synonyms": [
+        "Theming",
+        "UI system"
+      ],
+      "description": "Tailwind configuration and global CSS define gold/navy/white brand tokens, custom shadows/animations, and enhanced logo rendering with fallback icons when logo assets fail to load.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-19",
+      "title": "Shareable promotional banner image asset (exact logo + brand colors)",
+      "synonyms": [
+        "Marketing poster image",
+        "Social share banner"
+      ],
+      "description": "Adds a generated shareable banner image asset intended for public sharing/social, using the exact GB Insurance logo and matching brand colors.",
+      "reqIds": [
+        "AR-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-20",
+      "title": "Exact logo enforcement and logo-matched theme colors site-wide",
+      "synonyms": [
+        "Branding enforcement",
+        "Logo-based theme"
+      ],
+      "description": "Updates frontend branding to consistently use the exact GB Insurance logo asset across the UI and aligns the gold/navy/white theme tokens to match/extract from the logo colors.",
+      "reqIds": [
+        "AR-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-21",
+      "title": "Marketing image integrated into website UI",
+      "synonyms": [
+        "Insert provided picture",
+        "Homepage image placement"
+      ],
+      "description": "Integrates the provided image into the marketing website UI in the intended placement/layout so it appears as part of the public-facing experience.",
+      "reqIds": [
+        "AR-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "IF-22",
+      "title": "Social share preview image asset (Open Graph sized)",
+      "synonyms": [
+        "OG image",
+        "Twitter card image",
+        "Link preview image"
+      ],
+      "description": "Adds a generated Open Graph-sized share preview image asset (1200x630) for link previews when the site is shared on social platforms.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "feature-add-the-user-uploaded-image-image-3-png-to-the-app-as-a-static-asset-under-frontend-public-assets-generated-and-update-the-home-page-hero-banner-to-render-this-exact-image-so-it-is-visible-on-the-deployed-site",
+      "title": "Add the user-uploaded image (image-3.png) to the app as a static asset under frontend/public/assets/generated, and update the Home page hero banner to render this exact image so it is visible on the deployed site.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-html-preload-tag-to-preload-the-new-hero-banner-image-path-replacing-the-current-preload-of-assets-generated-image-2-png-so-the-correct-image-is-prioritized-on-first-paint",
+      "title": "Update the HTML preload tag to preload the new hero banner image path (replacing the current preload of /assets/generated/image-2.png) so the correct image is prioritized on first paint.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-4",
+      "summary": "Replace the current UI image with the exact user-provided image asset and ensure it is visible in the intended placement across the site",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "architecturalNotes": [
+    "Frontend is React + TypeScript using TanStack Router for routing and @tanstack/react-query for all backend IO (queries/mutations, caching, invalidation, retries, polling).",
+    "Authentication is handled via an InternetIdentityProvider built on @dfinity/auth-client; identity is loaded from storage on app init and can be cleared via logout.",
+    "Backend calls are made through an ICP actor created per-identity (anonymous vs authenticated) via createActorWithConfig; actor recreation is keyed by principal and triggers invalidation/refetch of dependent queries.",
+    "Access control is implemented in Motoko using a dedicated AccessControl module and a MixinAuthorization wrapper; admin assignment depends on an env-provided admin token and a user-provided secret.",
+    "Customer documents use an ExternalBlob abstraction and a blob-storage mixin that exposes management utilities (gateway principal sync, dead blob pruning, liveness checks, cashier refill).",
+    "UI uses TailwindCSS + shadcn-style components with a defined gold/navy/white brand token system; toast notifications use sonner; next-themes provides theme context (default light).",
+    "The admin dashboard uses periodic polling (30s) for near-real-time updates and offers manual refresh, search/filter/sort on the client side.",
+    "Frontend includes a top-level ErrorBoundary to prevent white-screen failures and provide a refresh fallback.",
+    "Project includes a build-time image tooling pipeline (scripts to resize images and prune unused images) to manage generated/embedded marketing assets.",
+    "Frontend adds custom ESLint rules to enforce architectural constraints (e.g., requiring InternetIdentityProvider usage and preventing unsafe query key patterns such as BigInt in react-query keys)."
+  ],
+  "knownIssues": [
+    "Primary-admin vs admin is not actually supported in the backend; frontend implements useIsPrimaryAdmin as a proxy to isCallerAdmin, so there is no distinction between primary admin and any admin role.",
+    "Backend state (customerForms, userProfiles, visitor stats, access control maps) is not stored in stable variables; data will be lost on canister upgrade unless additional stable persistence is implemented.",
+    "Visitor analytics uses Principal as a unique identifier; anonymous users share the same anonymous principal, so unique visitor counting will be inaccurate for unauthenticated traffic.",
+    "Blob-storage authorization state is declared transient and depends on calling _caffeineStorageUpdateGatewayPrincipals; without it, authorized principal lists may be empty after deployment/restart/upgrade, potentially breaking maintenance endpoints.",
+    "Environment variable name for the storage cashier principal appears misspelled (CAFFFEINE_STORAGE_CASHIER_PRINCIPAL with an extra 'F'); misconfiguration will cause runtime traps.",
+    "Frontend passes blobs as `any` in DashboardTable and relies on a runtime method `getDirectURL()`; this reduces type safety and can hide integration errors at compile time.",
+    "There are two different index.css files in the repository (frontend/src/index.css and frontend/index.css) with different variable systems; this can be confusing and may indicate unused/legacy styling configuration.",
+    "Admin secret token is stored in sessionStorage via URL-hash extraction utilities; while safer than query params and cleared from the URL, it still persists for the session and should be treated as sensitive.",
+    "User reports the exact provided image cannot be found/seen in the app after attempted image replacement; image integration or asset linking may not be applying correctly in the deployed build."
+  ],
+  "isFixRequest": true,
+  "imageRequirements": "## Required Images\n- User-provided GB Insurance promotional vehicle montage image (gb-hero-banner.dim_1600x900.png)",
+  "generatedImages": [
+    {
+      "filename": "gb-hero-banner.dim_1600x900.png",
+      "description": "User-provided GB Insurance promotional vehicle montage image",
+      "targetWidth": 1600,
+      "targetHeight": 900
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "GB Insurance",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0,
+  "requiresBackendChanges": false,
+  "requiresFrontendChanges": true
+}

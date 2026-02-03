@@ -1,0 +1,33 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-03T09:42:25.092Z",
+  "summary": "Hero banner image source and HTML preload were updated to point to /assets/generated/gb-hero-banner.dim_1600x900.png, but the diff does not show the required new static asset being added. The Hero component also introduces an additional shareable preview link that was not requested.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Add the user-uploaded image (image-3.png) to the app as a static asset under frontend/public/assets/generated, and update the Home page hero banner to render this exact image so it is visible on the deployed site.",
+      "reason": "The Hero component was updated to reference /assets/generated/gb-hero-banner.dim_1600x900.png, but the diff shows no added file under frontend/public/assets/generated (no added files at all). Therefore the requirement to add the user-uploaded image as a static asset is not evidenced as implemented.",
+      "evidence": [
+        "File diff summary: \"Added: 0\"",
+        "frontend/src/components/Hero.tsx (references /assets/generated/gb-hero-banner.dim_1600x900.png)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Added a 'Shareable Preview Link' button that opens /assets/generated/gb-hero-share-preview.dim_1200x630.png.",
+      "reason": "BuildRequest scope was limited to swapping the hero banner image asset and updating its preload reference; no requirement requested adding a share-preview link or referencing an additional share-preview image asset.",
+      "evidence": [
+        "frontend/src/components/Hero.tsx (\"Shareable Preview Link\" section referencing /assets/generated/gb-hero-share-preview.dim_1200x630.png)"
+      ]
+    }
+  ],
+  "confidence": 0.74,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/index.html",
+    "frontend/src/components/Hero.tsx",
+    "project_state.json"
+  ]
+}

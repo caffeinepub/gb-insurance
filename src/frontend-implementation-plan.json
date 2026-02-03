@@ -1,0 +1,43 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Wire user-provided hero image into Home hero banner and preload",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Add the user-provided hero image as a generated static asset and render it in the Home page hero banner.",
+      "acceptanceCriteria": [
+        "The hero banner image on the Home page renders the user-provided image (no broken image / fallback behavior triggered).",
+        "The hero banner image URL returns HTTP 200 in the deployed build and is accessible at a stable path under /assets/generated/.",
+        "No console warning appears about the hero image failing to load (i.e., Hero.tsx onError is not triggered under normal load)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/assets/generated/gb-hero-banner.dim_1600x900.png",
+          "operation": "create",
+          "description": "Add the user-provided image content (from image-3.png) as a generated static asset at this exact path so it can be served reliably in production."
+        },
+        {
+          "path": "frontend/src/components/Hero.tsx",
+          "operation": "modify",
+          "description": "Update the hero banner <img> to render /assets/generated/gb-hero-banner.dim_1600x900.png (replacing the current /assets/generated/image-2.png) so the Home page shows the user-provided image and does not trigger the onError fallback under normal load."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Preload the new hero banner asset in index.html and remove the old hero preload reference.",
+      "acceptanceCriteria": [
+        "frontend/index.html preloads the same hero image asset that Hero.tsx renders.",
+        "The app no longer references /assets/generated/image-2.png for the hero banner (unless used elsewhere intentionally)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/index.html",
+          "operation": "modify",
+          "description": "Replace the current image preload href (/assets/generated/image-2.png) with /assets/generated/gb-hero-banner.dim_1600x900.png so the preloaded asset matches the hero banner image rendered by Hero.tsx."
+        }
+      ]
+    }
+  ]
+}
