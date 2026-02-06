@@ -1,35 +1,87 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T18:36:32.274Z",
+  "generatedAt": "2026-02-06T19:07:53.643Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 0,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the admin-dashboard UI option/action labeled “Open shareable preview image” so it is not shown anywhere within the admin dashboard experience (Dashboard page and any dashboard-related components/menus/actions).",
+        "summary": "Make the “Reset Admin Credentials” flow work reliably on the deployed (live) site by ensuring the frontend can always create a working backend actor on the target network and does not fail due to missing/invalid admin token initialization.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useResetAdminCredentials.ts",
+          "frontend/src/pages/AdminLoginPage.tsx",
+          "frontend/src/hooks/useBackendHealth.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useResetAdminCredentials.ts",
+          "frontend/src/pages/AdminLoginPage.tsx",
+          "frontend/src/hooks/useBackendHealth.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Require an authenticated Internet Identity session before attempting to reset the admin password, and guide the user through authentication if they try to reset while unauthenticated.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminLoginPage.tsx",
+          "frontend/src/hooks/useResetAdminCredentials.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminLoginPage.tsx",
+          "frontend/src/hooks/useResetAdminCredentials.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Improve error handling for the reset password call so that live-site failures (traps, unauthorized, timeouts, unreachable backend) are correctly categorized and displayed, avoiding “no response” and “wrong redirect” outcomes.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/backendErrorMapping.ts",
+          "frontend/src/hooks/useResetAdminCredentials.ts",
+          "frontend/src/pages/AdminLoginPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/backendErrorMapping.ts",
+          "frontend/src/hooks/useResetAdminCredentials.ts",
+          "frontend/src/pages/AdminLoginPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Harden the backend resetAdminPassword endpoint to prevent insecure or inconsistent behavior across environments by explicitly rejecting anonymous callers and returning consistent errors for invalid input.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Add a focused regression check for the deployed scenario: verify that Admin Login, Reset Admin Credentials, and subsequent admin verification behave the same on local and deployed networks.",
         "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/DashboardHeader.tsx",
-          "frontend/src/pages/Dashboard.tsx",
-          "frontend/src/components/DashboardTable.tsx",
-          "frontend/src/components/DashboardFilters.tsx"
+          "frontend/DEPLOYMENT.md"
         ],
         "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/Hero.tsx",
+    "frontend/src/hooks/useBackendHealth.ts",
+    "frontend/src/hooks/useResetAdminCredentials.ts",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "frontend/src/utils/backendErrorMapping.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

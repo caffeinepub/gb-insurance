@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useBackendHealth } from './useBackendHealth';
 import type { CustomerForm, InsuranceType, UserProfile } from '../backend';
 import { ExternalBlob } from '../backend';
 import { toast } from 'sonner';
+import { logOnce } from '../utils/logOnce';
 
 // User Profile Queries
 export function useGetCallerUserProfile() {
@@ -17,7 +19,7 @@ export function useGetCallerUserProfile() {
     },
     enabled: !!actor && !actorFetching,
     retry: false,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
   });
 
   return {
@@ -36,8 +38,7 @@ export function useSaveCallerUserProfile() {
       if (!actor) {
         throw new Error('Backend connection not available. Please try again.');
       }
-      
-      // Validate profile data on frontend
+
       if (!profile.name || !profile.name.trim()) {
         throw new Error('Name is required');
       }
@@ -48,55 +49,37 @@ export function useSaveCallerUserProfile() {
         throw new Error('Role is required');
       }
 
-      // Call backend to save profile - returns void, throws on error
       await actor.saveCallerUserProfile(profile);
-      
-      // Return the profile for cache updates
       return profile;
     },
     onMutate: async (newProfile) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['currentUserProfile'] });
-
-      // Snapshot the previous value
       const previousProfile = queryClient.getQueryData<UserProfile | null>(['currentUserProfile']);
-
-      // Optimistically update to the new value
       queryClient.setQueryData(['currentUserProfile'], newProfile);
-
-      // Return context with the previous value
       return { previousProfile };
     },
     onSuccess: async (savedProfile) => {
-      // Ensure the cache is updated with the saved profile
       queryClient.setQueryData(['currentUserProfile'], savedProfile);
-      
-      // Invalidate and refetch to ensure consistency with backend
       await queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-      
-      // Also invalidate admin status queries
       await queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
-      
-      // Show success toast
+
       toast.success('Profile saved successfully!', {
         description: 'Your administrator profile has been created.',
         duration: 3000,
       });
     },
     onError: (error: Error, _newProfile, context) => {
-      // Rollback to previous value on error
       if (context?.previousProfile !== undefined) {
         queryClient.setQueryData(['currentUserProfile'], context.previousProfile);
       }
-      
-      console.error('Error saving profile:', error);
+
+      logOnce('profile-save-error', 'Error saving profile:', error);
       toast.error('Failed to save profile', {
         description: error.message || 'Please check your connection and try again.',
         duration: 5000,
       });
     },
     onSettled: () => {
-      // Always refetch after error or success to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
     },
   });
@@ -104,6 +87,7 @@ export function useSaveCallerUserProfile() {
 
 export function useIsCallerAdmin() {
   const { actor, isFetching: actorFetching } = useActor();
+  const { status: healthStatus } = useBackendHealth();
 
   return useQuery<boolean>({
     queryKey: ['isAdmin'],
@@ -111,42 +95,135 @@ export function useIsCallerAdmin() {
       if (!actor) return false;
       try {
         return await actor.isCallerAdmin();
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        return false;
+      } catch (error: any) {
+        // Check if this is an authorization error vs connectivity error
+        if (healthStatus === 'ok') {
+          // Backend is reachable but call failed - likely unauthorized
+          logOnce('admin-check-unauthorized', 'Admin check failed (unauthorized):', error);
+          return false;
+        } else {
+          // Backend unreachable
+          logOnce('admin-check-unreachable', 'Admin check failed (unreachable):', error);
+          throw error;
+        }
       }
     },
     enabled: !!actor && !actorFetching,
     staleTime: 0,
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry if backend is unreachable
+      if (healthStatus === 'unreachable') {
+        return false;
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2;
+    },
     retryDelay: 500,
   });
 }
 
-// Use isCallerAdmin as a proxy for primary admin check since backend doesn't have isPrimaryAdmin
 export function useIsPrimaryAdmin() {
   const { actor, isFetching: actorFetching } = useActor();
+  const { status: healthStatus } = useBackendHealth();
 
   return useQuery<boolean>({
     queryKey: ['isPrimaryAdmin'],
     queryFn: async () => {
       if (!actor) return false;
       try {
-        // Use isCallerAdmin since isPrimaryAdmin doesn't exist in backend
         return await actor.isCallerAdmin();
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        return false;
+      } catch (error: any) {
+        if (healthStatus === 'ok') {
+          logOnce('primary-admin-check-unauthorized', 'Primary admin check failed (unauthorized):', error);
+          return false;
+        } else {
+          logOnce('primary-admin-check-unreachable', 'Primary admin check failed (unreachable):', error);
+          throw error;
+        }
       }
     },
     enabled: !!actor && !actorFetching,
     staleTime: 0,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(500 * (attemptIndex + 1), 2000),
+    retry: (failureCount, error) => {
+      if (healthStatus === 'unreachable') {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: 500,
   });
 }
 
-// Customer Form Queries
+export function useAdminLoginWithPassword() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (password: string) => {
+      if (!actor) {
+        throw new Error('Backend connection not available. Please try again.');
+      }
+
+      const success = await actor.adminLoginWithPassword(password);
+      if (!success) {
+        throw new Error('Incorrect password');
+      }
+      return success;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
+      await queryClient.invalidateQueries({ queryKey: ['isPrimaryAdmin'] });
+
+      toast.success('Login successful!', {
+        description: 'Welcome back, Administrator.',
+        duration: 3000,
+      });
+    },
+    onError: (error: Error) => {
+      logOnce('admin-login-error', 'Admin login error:', error);
+      toast.error('Login failed', {
+        description: error.message || 'Please check your credentials and try again.',
+        duration: 5000,
+      });
+    },
+  });
+}
+
+export function useResetAdminPassword() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { resetCode: string; newPassword: string }) => {
+      if (!actor) {
+        throw new Error('Backend connection not available. Please try again.');
+      }
+
+      const success = await actor.resetAdminPassword(data.resetCode, data.newPassword);
+      if (!success) {
+        throw new Error('Failed to reset password');
+      }
+      return success;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
+      await queryClient.invalidateQueries({ queryKey: ['isPrimaryAdmin'] });
+
+      toast.success('Password reset successful!', {
+        description: 'Your admin credentials have been updated.',
+        duration: 3000,
+      });
+    },
+    onError: (error: Error) => {
+      logOnce('reset-password-error', 'Reset password error:', error);
+      toast.error('Reset failed', {
+        description: error.message || 'Please check your reset code and try again.',
+        duration: 5000,
+      });
+    },
+  });
+}
+
 export function useSubmitForm() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -174,7 +251,6 @@ export function useSubmitForm() {
     },
     onSuccess: () => {
       toast.success('Form submitted successfully! We will contact you soon.');
-      // Invalidate forms query to trigger automatic refresh in dashboard
       queryClient.invalidateQueries({ queryKey: ['allForms'] });
     },
     onError: (error: Error) => {
@@ -183,9 +259,9 @@ export function useSubmitForm() {
   });
 }
 
-// Dashboard Queries with improved error recovery and automatic refresh
 export function useGetAllForms() {
   const { actor, isFetching: actorFetching } = useActor();
+  const { status: healthStatus } = useBackendHealth();
 
   return useQuery<CustomerForm[]>({
     queryKey: ['allForms'],
@@ -193,15 +269,27 @@ export function useGetAllForms() {
       if (!actor) return [];
       try {
         return await actor.getAllForms();
-      } catch (error) {
-        console.error('Error fetching forms:', error);
+      } catch (error: any) {
+        if (healthStatus === 'ok') {
+          // Backend is reachable but call failed - likely unauthorized
+          logOnce('forms-fetch-unauthorized', 'Forms fetch failed (unauthorized):', error);
+        } else {
+          logOnce('forms-fetch-unreachable', 'Forms fetch failed (unreachable):', error);
+        }
         throw error;
       }
     },
     enabled: !!actor && !actorFetching,
-    retry: 3,
+    retry: (failureCount, error) => {
+      // Don't retry if backend is unreachable
+      if (healthStatus === 'unreachable') {
+        return false;
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
-    refetchInterval: 30000, // Auto-refresh every 30 seconds for real-time updates
-    refetchIntervalInBackground: false, // Only refresh when tab is active
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }

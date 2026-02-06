@@ -1,6 +1,8 @@
 import Map "mo:core/Map";
 import Time "mo:core/Time";
 import Iter "mo:core/Iter";
+import Text "mo:core/Text";
+import Nat "mo:core/Nat";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Array "mo:core/Array";
@@ -60,6 +62,63 @@ actor {
     uniqueVisitors = 0;
     pageViews = 0;
     submissions = 0;
+  };
+
+  var adminPassword = "default_admin_password";
+  var failedAdminLoginAttempts = 0;
+  let failedLoginThreshold = 3;
+
+  // ADMIN: Login with Password
+  public shared ({ caller }) func adminLoginWithPassword(password : Text) : async Bool {
+    if (failedAdminLoginAttempts >= failedLoginThreshold) {
+      Runtime.trap("Too many failed login attempts. Please use the recovery process.");
+    };
+
+    if (Text.equal(password, adminPassword)) {
+      failedAdminLoginAttempts := 0;
+      // Grant admin role to the caller after successful authentication
+      AccessControl.assignRole(accessControlState, caller, caller, #admin);
+      true;
+    } else {
+      failedAdminLoginAttempts += 1;
+      false;
+    };
+  };
+
+  // ADMIN: Reset Admin Password
+  public shared ({ caller }) func resetAdminPassword(resetCode : Text, newPassword : Text) : async Bool {
+    // Explicitly reject anonymous callers for security and consistency across environments
+    if (caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Anonymous callers cannot reset admin password");
+    };
+
+    // Validate input parameters
+    if (resetCode.size() == 0) {
+      Runtime.trap("Invalid input: Reset code cannot be empty");
+    };
+
+    if (newPassword.size() < 8) {
+      Runtime.trap("Invalid input: Password must be at least 8 characters long");
+    };
+
+    // Check if caller is already an admin OR has the valid reset code
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    let hasValidResetCode = Text.equal(resetCode, "GB.INSURE.JAI.P.");
+
+    if (not isAdmin and not hasValidResetCode) {
+      Runtime.trap("Unauthorized: Invalid reset code");
+    };
+
+    // Update password and reset failed login attempts
+    adminPassword := newPassword;
+    failedAdminLoginAttempts := 0;
+
+    // Grant admin role to the caller if they used the reset code
+    if (not isAdmin and hasValidResetCode) {
+      AccessControl.assignRole(accessControlState, caller, caller, #admin);
+    };
+
+    true;
   };
 
   // PUBLIC: Form Submission - No authentication required for customer inquiries
@@ -197,6 +256,11 @@ actor {
     };
 
     userProfiles.add(caller, profile);
+  };
+
+  // HEALTH CHECK: Anonymous backend status check
+  public query ({ caller }) func healthCheck() : async Bool {
+    true;
   };
 
   // Helper function for basic email validation

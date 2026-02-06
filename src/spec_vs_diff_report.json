@@ -1,46 +1,60 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T18:36:32.255Z",
-  "summary": "REQ-1 (removing the “Open shareable preview image” option from the admin dashboard UI) is not evidenced as implemented in the provided diff summary. The changes shown relate to the public Hero component/banner image and documentation/state summary files, which are not requested by the BuildRequest.",
+  "generatedAt": "2026-02-06T19:07:53.640Z",
+  "summary": "The diff implements key parts of the reset-credentials stabilization: a dedicated reset hook with independent actor initialization, backend error categorization, backend hardening to reject anonymous reset calls, and a backend health hook. However, the required deployed-scenario regression checklist documentation is not present, and some REQ-2/REQ-3 UI behaviors (II login triggering, redirect guarantees, dedicated unreachable state in reset UI) cannot be confirmed from the provided truncated diff. The diff summary also indicates multiple unrelated UI/branding feature changes that were not requested.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Remove the admin-dashboard UI option/action labeled “Open shareable preview image” so it is not shown anywhere within the admin dashboard experience (Dashboard page and any dashboard-related components/menus/actions).",
-      "reason": "No diff evidence shows edits to the admin dashboard page or dashboard-related components/menus/actions that would remove a control labeled “Open shareable preview image”, nor any removal of logic that opens the shareable preview image from the dashboard.",
+      "id": "REQ-2",
+      "requirement": "If the user clicks reset while unauthenticated, the UI offers (or triggers) Internet Identity login and only proceeds to call resetAdminPassword after authentication succeeds.",
+      "reason": "The new reset hook blocks unauthenticated users by throwing an error message, but the diff evidence does not show that the UI triggers or offers an Internet Identity login action as part of the reset flow before proceeding.",
       "evidence": [
-        "frontend-file-summaries.txt (lists Dashboard-related files but shows no actual code changes removing the option)",
-        "No modified file shown for frontend/src/pages/Dashboard.tsx or dashboard components in the diff summary"
+        "frontend/src/hooks/useResetAdminCredentials.ts (shows unauthenticated reset throws error; no login trigger shown in snippet)",
+        "frontend/src/pages/AdminLoginPage.tsx (truncated; reset UI behavior not fully visible)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "If the backend is unreachable, the reset UI shows a dedicated connectivity error state and does not attempt admin-status redirect logic; and the page never redirects to /dashboard as a result of reset unless admin verification actually returns true.",
+      "reason": "While error categorization for 'unreachable' is implemented and AdminLoginPage has admin-status verification logic, the truncated AdminLoginPage diff does not provide enough evidence that the reset dialog specifically renders a dedicated connectivity error state and that no redirect logic can be triggered by reset unless verification returns true.",
+      "evidence": [
+        "frontend/src/utils/backendErrorMapping.ts (adds 'unreachable' category)",
+        "frontend/src/pages/AdminLoginPage.tsx (truncated; reset handling and redirect interplay not fully shown)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Document a short manual test checklist (steps + expected outcomes) for local vs deployed behavior, including confirming backend reachability via healthCheck and expected UI for each health status.",
+      "reason": "No documentation/checklist file addition or modification is shown in the diff summary.",
+      "evidence": [
+        "<file-diff> (no added/modified README/docs/test-checklist file listed)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added/changed Hero banner image display with error handling and updated hero content/stats cards (public homepage UI change).",
-      "reason": "The BuildRequest only asks to remove an admin dashboard option; it explicitly notes non-dashboard pages should not be affected unless shared. The diff shows direct edits to the homepage Hero component instead.",
+      "description": "Broad UI/branding updates (e.g., exact WhatsApp logo usage, logo-derived color scheme, hero banner image, rich services section styling, animated dashboard stats, comprehensive table UI enhancements).",
+      "reason": "The BuildRequest explicitly limits scope to fixing/resetting credentials and stabilizing existing admin login/dashboard flow and does not request branding/theme/hero/services/dashboard UI redesigns.",
       "evidence": [
-        "frontend/src/components/Hero.tsx"
+        "frontend-file-summaries.txt (multiple components described with new logo/branding/styling/feature enhancements unrelated to reset/admin flow fix)"
       ]
     },
     {
-      "description": "Updated/modified project summary/state documentation describing existing features (including mention of “Hero (banner image + shareable preview link)”).",
-      "reason": "Not requested by the BuildRequest; also does not demonstrate removal of the dashboard option.",
+      "description": "Customer form enhancements (document upload capability, file validation, upload progress tracking) and other non-admin features.",
+      "reason": "Non-goals state not to implement new admin features beyond fixing/resetting credentials; these additions are unrelated to the reset-admin-credentials bugfix scope described.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "description": "Updated generated file summary descriptions (including dashboard feature descriptions) without shown corresponding code changes for the requested removal.",
-      "reason": "Not requested by the BuildRequest; no evidence of implementing REQ-1 in actual dashboard code.",
-      "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend-file-summaries.txt (CustomerForm described with document upload, validations, progress tracking)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/Hero.tsx",
+    "frontend/src/hooks/useBackendHealth.ts",
+    "frontend/src/hooks/useResetAdminCredentials.ts",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "frontend/src/utils/backendErrorMapping.ts",
     "project_state.json"
   ]
 }

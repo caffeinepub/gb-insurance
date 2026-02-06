@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useGetAllForms, useIsPrimaryAdmin } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useBackendHealth } from '../hooks/useBackendHealth';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardHeader from '../components/DashboardHeader';
 import DashboardTable from '../components/DashboardTable';
@@ -9,22 +10,21 @@ import DashboardStats from '../components/DashboardStats';
 import DashboardFilters from '../components/DashboardFilters';
 import AccessDeniedScreen from '../components/AccessDeniedScreen';
 import type { CustomerForm, InsuranceType } from '../backend';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { getSessionParameter } from '../utils/urlParams';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { clear, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
   const { data: forms = [], isLoading: formsLoading, error: formsError, refetch: refetchForms } = useGetAllForms();
-  const { data: isPrimaryAdmin, isLoading: adminLoading, refetch: refetchAdminStatus } = useIsPrimaryAdmin();
+  const { data: isPrimaryAdmin, isLoading: adminLoading, error: adminError, refetch: refetchAdminStatus } = useIsPrimaryAdmin();
+  const { status: healthStatus, isChecking: healthChecking, refetch: refetchHealth } = useBackendHealth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<InsuranceType | 'all'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'date'>('date');
-  const [retryAttempt, setRetryAttempt] = useState(0);
   const [isManualRetrying, setIsManualRetrying] = useState(false);
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
@@ -36,18 +36,6 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, navigate]);
 
-  // Fallback retry: if forms fail to load and admin status is uncertain, retry
-  useEffect(() => {
-    if (formsError && isPrimaryAdmin === false && retryAttempt < 2) {
-      const timer = setTimeout(() => {
-        setRetryAttempt(prev => prev + 1);
-        refetchAdminStatus();
-        refetchForms();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [formsError, isPrimaryAdmin, retryAttempt, refetchAdminStatus, refetchForms]);
-
   const handleLogout = async () => {
     await clear();
     queryClient.clear();
@@ -56,9 +44,8 @@ export default function Dashboard() {
 
   const handleManualRefresh = async () => {
     setIsManualRetrying(true);
-    setRetryAttempt(0);
     try {
-      await refetchForms();
+      await Promise.all([refetchForms(), refetchHealth()]);
     } finally {
       setIsManualRetrying(false);
     }
@@ -66,32 +53,31 @@ export default function Dashboard() {
 
   const handleErrorRetry = async () => {
     setIsManualRetrying(true);
-    setRetryAttempt(0);
     try {
-      await Promise.all([refetchForms(), refetchAdminStatus()]);
+      await Promise.all([refetchForms(), refetchAdminStatus(), refetchHealth()]);
     } finally {
       setIsManualRetrying(false);
     }
   };
 
-  // Show access denied if not admin
-  if (!adminLoading && isPrimaryAdmin === false) {
+  // Show access denied if not admin (only after loading completes)
+  if (!adminLoading && isPrimaryAdmin === false && !adminError) {
     return <AccessDeniedScreen onLogout={handleLogout} />;
   }
 
   // Filter and sort forms
   let filteredForms = forms.filter((form: CustomerForm) => {
-    const matchesSearch = form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         form.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         form.phone.includes(searchTerm);
-    
-    const matchesFilter = filterType === 'all' || 
-                         form.insuranceInterests.some(interest => interest === filterType);
-    
+    const matchesSearch =
+      form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      form.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      form.phone.includes(searchTerm);
+
+    const matchesFilter =
+      filterType === 'all' || form.insuranceInterests.some((interest) => interest === filterType);
+
     return matchesSearch && matchesFilter;
   });
 
-  // Sort forms
   filteredForms = [...filteredForms].sort((a, b) => {
     if (sortBy === 'name') {
       return a.name.localeCompare(b.name);
@@ -100,10 +86,14 @@ export default function Dashboard() {
     }
   });
 
+  // Determine error type and message
+  const isBackendUnreachable = healthStatus === 'unreachable';
+  const isUnauthorized = healthStatus === 'ok' && (formsError || adminError);
+
   return (
     <div className="min-h-screen bg-background animate-fade-in">
       <DashboardHeader onLogout={handleLogout} />
-      
+
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8 animate-slide-up flex justify-between items-center">
           <div>
@@ -113,13 +103,82 @@ export default function Dashboard() {
           <Button
             onClick={handleManualRefresh}
             variant="outline"
-            disabled={isManualRetrying || formsLoading}
+            disabled={isManualRetrying || formsLoading || healthChecking}
             className="border-2 border-border hover:border-primary transition-smooth"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying || healthChecking ? 'animate-spin' : ''}`} />
             Refresh Data
           </Button>
         </div>
+
+        {/* Backend unreachable error */}
+        {isBackendUnreachable && (
+          <Alert variant="destructive" className="mb-6 animate-fade-in border-2">
+            <WifiOff className="h-5 w-5" />
+            <AlertTitle className="font-bold">Backend Connection Failed</AlertTitle>
+            <AlertDescription className="font-medium space-y-3">
+              <p>
+                Unable to connect to the backend. Please check your internet connection and ensure the backend
+                canister is deployed and running.
+              </p>
+              <Button
+                onClick={handleErrorRetry}
+                variant="outline"
+                size="sm"
+                disabled={isManualRetrying}
+                className="bg-background hover:bg-background/80 border-2 border-background text-destructive-foreground hover:text-destructive-foreground font-bold"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
+                {isManualRetrying ? 'Retrying...' : 'Retry Connection'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Authorization error */}
+        {isUnauthorized && (
+          <Alert variant="destructive" className="mb-6 animate-fade-in border-2">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="font-bold">Authorization Error</AlertTitle>
+            <AlertDescription className="font-medium space-y-3">
+              <p>
+                You do not have permission to access this data. Admin privileges may be required. Please ensure you
+                are logged in with an authorized admin account.
+              </p>
+              <Button
+                onClick={handleErrorRetry}
+                variant="outline"
+                size="sm"
+                disabled={isManualRetrying}
+                className="bg-background hover:bg-background/80 border-2 border-background text-destructive-foreground hover:text-destructive-foreground font-bold"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
+                {isManualRetrying ? 'Retrying...' : 'Retry Authorization'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Generic error (not backend unreachable or unauthorized) */}
+        {formsError && !isBackendUnreachable && !isUnauthorized && (
+          <Alert variant="destructive" className="mb-6 animate-fade-in border-2">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="font-bold">Error Loading Customer Submissions</AlertTitle>
+            <AlertDescription className="font-medium space-y-3">
+              <p>An unexpected error occurred while loading customer data. Please try again.</p>
+              <Button
+                onClick={handleErrorRetry}
+                variant="outline"
+                size="sm"
+                disabled={isManualRetrying}
+                className="bg-background hover:bg-background/80 border-2 border-background text-destructive-foreground hover:text-destructive-foreground font-bold"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
+                {isManualRetrying ? 'Retrying...' : 'Retry Loading Data'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <DashboardStats forms={forms} />
@@ -136,39 +195,13 @@ export default function Dashboard() {
           />
         </div>
 
-        {formsError && (
-          <Alert variant="destructive" className="mb-6 animate-fade-in border-2">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle className="font-bold">Error Loading Customer Submissions</AlertTitle>
-            <AlertDescription className="font-medium space-y-3">
-              <p>
-                {retryAttempt < 2 
-                  ? 'Attempting to reconnect and load customer data...' 
-                  : 'Unable to load customer submissions. This may be due to a connection issue or authorization problem.'}
-              </p>
-              <Button
-                onClick={handleErrorRetry}
-                variant="outline"
-                size="sm"
-                disabled={isManualRetrying}
-                className="bg-background hover:bg-background/80 border-2 border-background text-destructive-foreground hover:text-destructive-foreground font-bold"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
-                {isManualRetrying ? 'Retrying...' : 'Retry Loading Data'}
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {formsLoading ? (
+        {formsLoading || adminLoading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         ) : (
           <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <DashboardTable
-              forms={filteredForms}
-            />
+            <DashboardTable forms={filteredForms} />
           </div>
         )}
       </main>

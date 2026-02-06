@@ -1,36 +1,93 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove shareable preview image action from admin dashboard UI",
+  "title": "Stabilize live Admin Reset Credentials flow (robust actor init, II gating, and error handling)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove any admin-dashboard UI control labeled “Open shareable preview image” and ensure no dashboard interaction opens the share-preview image in a new tab/window.",
+      "summary": "Make Reset Admin Credentials reliable on live by initializing a usable backend actor even when the admin token is missing/invalid, and surface actor-init failures with a retry UI.",
       "acceptanceCriteria": [
-        "When viewing the admin dashboard route, there is no button/link/menu item labeled “Open shareable preview image”.",
-        "No dashboard UI interaction opens the shareable preview image in a new tab/window.",
-        "The removal does not affect non-dashboard pages (e.g., the public homepage) unless the removed control was actually shared/reused by the dashboard."
+        "On the live deployment, opening the Admin Login page and clicking “Reset Admin Credentials” does not fail with a generic backend connection error when the backend canister is reachable.",
+        "If a secret admin token is missing/empty, actor initialization must still succeed and allow non-token operations (e.g., healthCheck, password reset) to be called; any token-related failure must be handled without breaking actor creation.",
+        "Any actor initialization error that prevents backend calls is surfaced to the user as a clear error state on the Admin Login page (in English), and the page provides a retry action."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/DashboardHeader.tsx",
-          "operation": "modify",
-          "description": "Remove any dashboard header action/link/menu entry labeled “Open shareable preview image” and any associated click handler (e.g., window.open) if present or introduced via shared header variants; confirm the dashboard header renders without that control."
+          "path": "frontend/src/hooks/useResetAdminCredentials.ts",
+          "operation": "create",
+          "description": "Create a dedicated hook for the reset flow that builds a backend actor for the current network with Internet Identity (when present) and treats admin-token initialization as best-effort (do not fail actor creation when the token is missing/invalid). Expose explicit states for: initializing actor, backend unreachable, token init warning (non-fatal), and hard init failure requiring retry."
         },
         {
-          "path": "frontend/src/pages/Dashboard.tsx",
+          "path": "frontend/src/pages/AdminLoginPage.tsx",
           "operation": "modify",
-          "description": "Audit and remove any dashboard-level UI wiring that could render or trigger “Open shareable preview image” (including any callback that opens the generated share-preview image in a new tab/window) while keeping all other dashboard functionality unchanged."
+          "description": "Update the Admin Login page to use the new reset hook rather than the generic reset mutation that depends on the shared actor initialization. Add a clear, English error state for actor initialization failures affecting reset (and/or health verification), and provide a visible retry action that re-attempts initialization and the reset call when appropriate."
         },
         {
-          "path": "frontend/src/components/DashboardTable.tsx",
+          "path": "frontend/src/hooks/useBackendHealth.ts",
           "operation": "modify",
-          "description": "Ensure the dashboard table does not include any action labeled “Open shareable preview image” and does not open the share-preview image asset; keep existing document view/download behaviors intact."
+          "description": "Ensure backend health checks do not depend on admin-token initialization and remain callable even when the admin token is missing/invalid, so live deployments can reliably show ‘Backend Connected/Disconnected’ and support retry without actor init failures."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Gate admin password reset behind an authenticated Internet Identity session and guide unauthenticated users through sign-in before resetting.",
+      "acceptanceCriteria": [
+        "If the user is not authenticated (anonymous principal), the reset action is blocked and the UI clearly instructs the user to sign in with Internet Identity first.",
+        "If the user clicks reset while unauthenticated, the UI offers (or triggers) Internet Identity login and only proceeds to call resetAdminPassword after authentication succeeds.",
+        "After a successful reset, the UI refreshes admin status and provides a success confirmation without redirect loops or blank states."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminLoginPage.tsx",
+          "operation": "modify",
+          "description": "Add explicit Internet Identity authentication gating for the Reset Admin Credentials action: if unauthenticated, block the reset submission, show clear instructions to sign in first, and offer/trigger the existing Internet Identity login flow; after login completes successfully, proceed with reset and then refresh admin status to show a success confirmation without unintended redirects."
         },
         {
-          "path": "frontend/src/components/DashboardFilters.tsx",
+          "path": "frontend/src/hooks/useResetAdminCredentials.ts",
           "operation": "modify",
-          "description": "Verify dashboard filters do not render or reference any action labeled “Open shareable preview image”; remove any such UI element if found without impacting filtering/sorting."
+          "description": "Enforce that the reset call only executes when the user has a non-anonymous Internet Identity session; return a user-friendly error state/message instructing the user to authenticate first when attempted anonymously."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Improve reset error categorization and display (trap/unauthorized/timeout/unreachable) and prevent incorrect redirects to /dashboard unless admin verification is true.",
+      "acceptanceCriteria": [
+        "If resetAdminPassword traps (e.g., invalid reset code, password policy), the user sees the trap message (or a safe, human-readable mapped message) in the reset dialog instead of a silent failure.",
+        "If the backend is unreachable, the reset UI shows a dedicated connectivity error state and does not attempt admin-status redirect logic.",
+        "The page never redirects to /dashboard as a result of reset unless admin verification actually returns true; redirect behavior is consistent between local and deployed environments."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/backendErrorMapping.ts",
+          "operation": "create",
+          "description": "Add a small utility to categorize and map backend-call failures into stable UI messages (e.g., trap message extraction, unauthorized vs unreachable vs timeout), suitable for English user-facing display and for deciding whether to offer retry vs. prompt login."
+        },
+        {
+          "path": "frontend/src/hooks/useResetAdminCredentials.ts",
+          "operation": "modify",
+          "description": "Use the error-mapping utility to classify reset failures and return structured error info for the UI (trap/unauthorized/timeout/unreachable). Ensure unreachable/timeout states are clearly distinguished from authorization failures, and that errors are never swallowed as ‘no response’."
+        },
+        {
+          "path": "frontend/src/pages/AdminLoginPage.tsx",
+          "operation": "modify",
+          "description": "Update reset dialog UI to display categorized reset errors (including safe trap messages), show a dedicated connectivity error state when unreachable, and ensure reset success only triggers an admin-status refresh and success confirmation (no redirect) unless an explicit admin verification later returns true."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add a focused manual regression checklist for local vs deployed behavior covering Admin Login, Reset Admin Credentials, verification, and backend reachability via healthCheck.",
+      "acceptanceCriteria": [
+        "Document a short manual test checklist (steps + expected outcomes) covering: (1) authenticate with Internet Identity, (2) reset password with reset code, (3) login with password, (4) reach /dashboard, and (5) behavior when backend is unreachable.",
+        "The checklist includes how to confirm backend reachability via the existing healthCheck endpoint and what the UI should display for each health status."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/DEPLOYMENT.md",
+          "operation": "modify",
+          "description": "Add a concise manual regression checklist section for ‘deployed vs local’ verification including: II authentication, reset with reset code, credential login, dashboard access, and unreachable-backend behavior; include how to use the existing healthCheck-based UI status indicator and expected UI states/messages for each health status."
         }
       ]
     }

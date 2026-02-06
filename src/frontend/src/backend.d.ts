@@ -51,6 +51,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    adminLoginWithPassword(password: string): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAllForms(): Promise<Array<CustomerForm>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -60,8 +61,10 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisitorCount(): Promise<bigint>;
     getVisitorStats(): Promise<VisitorAnalytics>;
+    healthCheck(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     recordVisitor(): Promise<void>;
+    resetAdminPassword(resetCode: string, newPassword: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     submitForm(name: string, phone: string, email: string, address: string, interests: Array<InsuranceType>, feedback: string, documents: Array<ExternalBlob>): Promise<void>;
 }

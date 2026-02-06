@@ -144,6 +144,7 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    adminLoginWithPassword(password: string): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAllForms(): Promise<Array<CustomerForm>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -153,8 +154,10 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisitorCount(): Promise<bigint>;
     getVisitorStats(): Promise<VisitorAnalytics>;
+    healthCheck(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     recordVisitor(): Promise<void>;
+    resetAdminPassword(resetCode: string, newPassword: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     submitForm(name: string, phone: string, email: string, address: string, interests: Array<InsuranceType>, feedback: string, documents: Array<ExternalBlob>): Promise<void>;
 }
@@ -256,6 +259,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            return result;
+        }
+    }
+    async adminLoginWithPassword(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminLoginWithPassword(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminLoginWithPassword(arg0);
             return result;
         }
     }
@@ -385,6 +402,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async healthCheck(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.healthCheck();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.healthCheck();
+            return result;
+        }
+    }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -410,6 +441,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.recordVisitor();
+            return result;
+        }
+    }
+    async resetAdminPassword(arg0: string, arg1: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetAdminPassword(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetAdminPassword(arg0, arg1);
             return result;
         }
     }

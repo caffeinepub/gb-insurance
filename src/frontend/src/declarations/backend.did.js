@@ -85,6 +85,7 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'adminLoginWithPassword' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getAllForms' : IDL.Func([], [IDL.Vec(CustomerForm)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
@@ -102,8 +103,10 @@ export const idlService = IDL.Service({
     ),
   'getVisitorCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getVisitorStats' : IDL.Func([], [VisitorAnalytics], ['query']),
+  'healthCheck' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'recordVisitor' : IDL.Func([], [], []),
+  'resetAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'submitForm' : IDL.Func(
       [
@@ -200,6 +203,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'adminLoginWithPassword' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getAllForms' : IDL.Func([], [IDL.Vec(CustomerForm)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
@@ -217,8 +221,10 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getVisitorCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getVisitorStats' : IDL.Func([], [VisitorAnalytics], ['query']),
+    'healthCheck' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'recordVisitor' : IDL.Func([], [], []),
+    'resetAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'submitForm' : IDL.Func(
         [

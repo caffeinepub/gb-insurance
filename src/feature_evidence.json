@@ -1,4 +1,70 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-make-the-reset-admin-credentials-flow-work-reliably-on-the-deployed-live-site-by-ensuring-the-frontend-can-always-create-a-working-backend-actor-on-the-target-network-and-does-not-fail-due-to-missing-invalid-admin-token-initialization",
+      "featureTitle": "Make the “Reset Admin Credentials” flow work reliably on the deployed (live) site by ensuring the frontend can always create a working backend actor on the target network and does not fail due to missing/invalid admin token initialization.",
+      "files": [
+        "frontend/src/hooks/useBackendHealth.ts",
+        "frontend/src/hooks/useResetAdminCredentials.ts",
+        "frontend/src/pages/AdminLoginPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-require-an-authenticated-internet-identity-session-before-attempting-to-reset-the-admin-password-and-guide-the-user-through-authentication-if-they-try-to-reset-while-unauthenticated",
+      "featureTitle": "Require an authenticated Internet Identity session before attempting to reset the admin password, and guide the user through authentication if they try to reset while unauthenticated.",
+      "files": [
+        "frontend/src/hooks/useResetAdminCredentials.ts",
+        "frontend/src/pages/AdminLoginPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-improve-error-handling-for-the-reset-password-call-so-that-live-site-failures-traps-unauthorized-timeouts-unreachable-backend-are-correctly-categorized-and-displayed-avoiding-no-response-and-wrong-redirect-outcomes",
+      "featureTitle": "Improve error handling for the reset password call so that live-site failures (traps, unauthorized, timeouts, unreachable backend) are correctly categorized and displayed, avoiding “no response” and “wrong redirect” outcomes.",
+      "files": [
+        "frontend/src/hooks/useResetAdminCredentials.ts",
+        "frontend/src/pages/AdminLoginPage.tsx",
+        "frontend/src/utils/backendErrorMapping.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

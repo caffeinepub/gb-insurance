@@ -71,6 +71,7 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'adminLoginWithPassword' : ActorMethod<[string], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllForms' : ActorMethod<[], Array<CustomerForm>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -80,8 +81,10 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVisitorCount' : ActorMethod<[], bigint>,
   'getVisitorStats' : ActorMethod<[], VisitorAnalytics>,
+  'healthCheck' : ActorMethod<[], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'recordVisitor' : ActorMethod<[], undefined>,
+  'resetAdminPassword' : ActorMethod<[string, string], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitForm' : ActorMethod<
     [

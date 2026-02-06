@@ -1,253 +1,63 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "GB Insurance is an Internet Computer (ICP) dApp with a public marketing website and an admin-only dashboard. Visitors can submit insurance inquiry forms (including optional multi-file document uploads) to a Motoko backend canister. Admins authenticate via Internet Identity and are authorized via a one-time secret-token bootstrap mechanism; authorized admins can view all submissions, filter/search/sort them, and open/download uploaded documents. The backend also includes basic per-user profile storage, visitor analytics endpoints, and Caffeine blob-storage management utilities, plus a production deployment guide for mainnet.",
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [
+    "Admin login/dashboard issue on live site: 'Reset Admin Credentials' fails (error/no response/wrong redirect) but works in local development."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "IF-1",
-      "title": "Public marketing homepage",
-      "synonyms": [
-        "Landing page",
-        "Home page"
+      "id": "feature-make-the-reset-admin-credentials-flow-work-reliably-on-the-deployed-live-site-by-ensuring-the-frontend-can-always-create-a-working-backend-actor-on-the-target-network-and-does-not-fail-due-to-missing-invalid-admin-token-initialization",
+      "title": "Make the “Reset Admin Credentials” flow work reliably on the deployed (live) site by ensuring the frontend can always create a working backend actor on the target network and does not fail due to missing/invalid admin token initialization.",
+      "reqIds": [
+        "REQ-1"
       ],
-      "description": "Renders a public site composed of Header, Hero (banner image + shareable preview link), Services, Support section, CustomerForm, and Footer with anchored navigation sections.",
-      "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-2",
-      "title": "Centralized branding constants with logo fallback handling",
-      "synonyms": [
-        "Brand identity constants",
-        "Logo asset management"
+      "id": "feature-require-an-authenticated-internet-identity-session-before-attempting-to-reset-the-admin-password-and-guide-the-user-through-authentication-if-they-try-to-reset-while-unauthenticated",
+      "title": "Require an authenticated Internet Identity session before attempting to reset the admin password, and guide the user through authentication if they try to reset while unauthenticated.",
+      "reqIds": [
+        "REQ-2"
       ],
-      "description": "Defines company name/tagline/contact/logo paths in a shared constants module and uses robust logo rendering with fallback icons if the image fails to load (header/footer/dashboard header).",
-      "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-3",
-      "title": "Customer insurance inquiry form submission",
-      "synonyms": [
-        "Lead capture form",
-        "Quote request form"
+      "id": "feature-improve-error-handling-for-the-reset-password-call-so-that-live-site-failures-traps-unauthorized-timeouts-unreachable-backend-are-correctly-categorized-and-displayed-avoiding-no-response-and-wrong-redirect-outcomes",
+      "title": "Improve error handling for the reset password call so that live-site failures (traps, unauthorized, timeouts, unreachable backend) are correctly categorized and displayed, avoiding “no response” and “wrong redirect” outcomes.",
+      "reqIds": [
+        "REQ-3"
       ],
-      "description": "Collects customer details (name/phone/email/address), insurance interests, and optional feedback; performs client-side validation (required fields, email format, 10-digit phone, at least one interest) and submits to the backend with success/error feedback.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-4",
-      "title": "Optional multi-file document upload using ExternalBlob",
-      "synonyms": [
-        "Supporting documents upload",
-        "Attachments"
-      ],
-      "description": "Allows selecting multiple files, enforces a 5MB-per-file limit, converts file bytes into ExternalBlob objects, tracks per-file upload progress via callbacks, and allows removing selected files prior to submission.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-5",
-      "title": "Backend persistence of customer submissions",
-      "synonyms": [
-        "Form storage",
-        "Submission repository"
-      ],
-      "description": "Motoko backend stores submissions with incremental IDs, timestamps, customer fields, insurance interests, feedback, and uploaded ExternalBlob references; validates required fields and ensures at least one interest.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-6",
-      "title": "Admin-only dashboard data retrieval with polling refresh",
-      "synonyms": [
-        "Submissions dashboard",
-        "Admin panel"
-      ],
-      "description": "Fetches all customer forms (admin-only) with React Query retries and a 30-second refetch interval for periodic updates; includes manual refresh and error retry actions.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-7",
-      "title": "Dashboard filtering, search, sorting, and statistics",
-      "synonyms": [
-        "Client-side filters",
-        "Table controls",
-        "Dashboard KPIs"
-      ],
-      "description": "Provides search by name/email/phone, filtering by insurance type, sorting by date or name, and a derived stats summary (total, today, last 7 days, most popular insurance type).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-8",
-      "title": "Submissions table with document view/download actions",
-      "synonyms": [
-        "Document actions",
-        "Submission details table"
-      ],
-      "description": "Displays submissions in a scrollable table with formatted timestamps and interest badges; allows viewing documents in a new tab and triggering downloads using blob direct URLs.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-9",
-      "title": "Internet Identity authentication provider",
-      "synonyms": [
-        "II login",
-        "AuthClient integration"
-      ],
-      "description": "Implements an InternetIdentityProvider context around Dfinity AuthClient with login/logout, identity load-on-mount, login status flags, and error handling for initialization/auth failures.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-10",
-      "title": "Per-identity ICP actor creation with token-based access-control initialization",
-      "synonyms": [
-        "Actor factory",
-        "Backend client initialization",
-        "Admin token bootstrap"
-      ],
-      "description": "Creates an anonymous actor for guests and an identity-bound actor for authenticated users; extracts an admin secret from the URL hash/session and calls `_initializeAccessControlWithSecret` to register role state on the backend; triggers query invalidation/refetch when actor changes.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-11",
-      "title": "Role-based access control (admin/user/guest) in backend",
-      "synonyms": [
-        "RBAC",
-        "Authorization layer"
-      ],
-      "description": "Motoko AccessControl maintains roles per Principal and protects admin-only endpoints (forms/visitor stats/role assignment); includes helper endpoints via MixinAuthorization for initialization, role queries, and admin checks.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-12",
-      "title": "Authenticated user profile read/write for the caller",
-      "synonyms": [
-        "Caller profile",
-        "Admin profile"
-      ],
-      "description": "Backend supports getCallerUserProfile/saveCallerUserProfile for authenticated users; frontend provides React Query hooks with validation, optimistic updates, cache invalidation, and toast feedback.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-13",
-      "title": "First-time profile setup modal",
-      "synonyms": [
-        "Profile onboarding",
-        "Setup wizard"
-      ],
-      "description": "When an authenticated user has no stored profile, the app blocks with a ProfileSetup dialog to collect name/email and save an Administrator-role profile before proceeding.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-14",
-      "title": "Admin login and access denied flows",
-      "synonyms": [
-        "Admin authentication flow",
-        "Unauthorized screen"
-      ],
-      "description": "AdminLoginPage drives Internet Identity login and then verifies admin status with retries/timeouts and redirects to /dashboard on success; non-admins attempting to access the dashboard see an AccessDeniedScreen with guidance and logout/home actions.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-15",
-      "title": "Visitor analytics endpoints",
-      "synonyms": [
-        "Visitor tracking",
-        "Site analytics"
-      ],
-      "description": "Backend provides recordVisitor(), getVisitorCount() (public), and getVisitorStats() (admin-only) tracking totals/uniques/page views/submissions (as implemented).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-16",
-      "title": "Caffeine blob-storage management endpoints",
-      "synonyms": [
-        "Blob GC utilities",
-        "Storage maintenance"
-      ],
-      "description": "Includes endpoints to refill the cashier, update authorized gateway principals, check blob liveness, list dead blobs for deletion, confirm deletion and trigger GC, and create upload certificates.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-17",
-      "title": "Global app shell: routing, theming, toasts, and error boundary",
-      "synonyms": [
-        "App shell",
-        "Resilience UI"
-      ],
-      "description": "Uses TanStack Router for routes (/ /admin-login /dashboard), wraps UI with next-themes ThemeProvider, mounts a global sonner Toaster, and includes a top-level ErrorBoundary with a refresh fallback screen.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-18",
-      "title": "Production deployment documentation",
-      "synonyms": [
-        "Mainnet deployment guide",
-        "Deployment checklist"
-      ],
-      "description": "Provides a DEPLOYMENT.md with prerequisites, environment configuration, build/deploy steps, post-deploy verification, admin setup guidance, and troubleshooting for ICP mainnet release.",
-      "reqIds": [],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Remove the \"open shareable preview image\" option from the admin dashboard UI.",
+      "summary": "Fix 'Reset Admin Credentials' not working on live admin login/dashboard (errors/no response/wrong redirect; works locally)",
       "reqIds": [],
       "status": "in_progress"
     },
     {
-      "id": "AR-2",
-      "summary": "Remove the admin-dashboard UI option/action labeled “Open shareable preview image” so it is not shown anywhere within the admin dashboard experience (Dashboard page and any dashboard-related components/menus/actions).",
+      "id": "AR-5",
+      "summary": "Harden the backend resetAdminPassword endpoint to prevent insecure or inconsistent behavior across environments by explicitly rejecting anonymous callers and returning consistent errors for invalid input.",
       "reqIds": [
-        "REQ-1"
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add a focused regression check for the deployed scenario: verify that Admin Login, Reset Admin Credentials, and subsequent admin verification behave the same on local and deployed networks.",
+      "reqIds": [
+        "REQ-5"
       ],
       "status": "pending"
     }
   ],
-  "architectural_notes": [
-    "Frontend is a React + TypeScript SPA using TanStack Router for routing.",
-    "Backend IO uses TanStack React Query for queries/mutations, caching, retries, optimistic updates, and polling refresh (dashboard).",
-    "Authentication is implemented with Internet Identity via @dfinity/auth-client; identity is loaded from storage on app init and can persist for long sessions.",
-    "Backend access is via an ICP actor created by createActorWithConfig; hook caches actor by principal and refreshes queries on identity changes.",
-    "Authorization uses a Motoko AccessControl state with a mixin wrapper; first admin is assigned via an env-provided token matched against a user-provided secret.",
-    "Motoko backend composes features via mixins (authorization + Caffeine blob-storage endpoints) included into the main actor.",
-    "Customer documents are passed/stored as ExternalBlob references; frontend constructs ExternalBlob from file bytes and uses direct URLs for viewing/downloading.",
-    "UI is built with TailwindCSS + shadcn-style components and lucide-react icons; branding is centralized in a constants module.",
-    "App shell includes global theming via next-themes, toast notifications via sonner, and a top-level error boundary for crash resilience.",
-    "Backend data is stored in in-memory Map structures inside the canister (forms, profiles, visitor identifiers/stats)."
-  ],
-  "known_issues": [
-    "No distinct “primary admin” concept exists: useIsPrimaryAdmin simply proxies isCallerAdmin.",
-    "Frontend actor initialization calls `_initializeAccessControlWithSecret` without try/catch; if the backend traps (e.g., missing CAFFEINE_ADMIN_TOKEN or other init failure), the app can error and the UI won’t receive a persisted `adminInitError` even though pages try to display it.",
-    "AccessControl.getUserRole traps for unregistered (but authenticated) principals; depending on call order, some role checks may error until initialization runs successfully.",
-    "Visitor analytics logic appears incorrect/inconsistent: `recordVisitor()` calls `updateVisitorStats()` twice without changing inputs, `pageViews` is set equal to unique visitors, and `totalVisitors` is derived from `nextId` (form IDs) rather than visits.",
-    "Canister state (forms, profiles, visitor stats) is not declared `stable`; upgrades are likely to reset data.",
-    "Blob storage cashier env var is spelled `CAFFFEINE_STORAGE_CASHIER_PRINCIPAL` (extra 'F'), increasing the chance of production misconfiguration and runtime traps.",
-    "`_caffeineStorageUpdateGatewayPrincipals` has no authorization check, allowing any caller to trigger a refresh of authorized principals from the cashier.",
-    "DashboardTable uses `any` for document blobs and relies on a runtime `getDirectURL()` method, reducing type safety and making integration failures harder to catch at compile time.",
-    "Client-side document validation only enforces file size (5MB) and HTML accept types; the backend accepts any blob payload, so type enforcement is not guaranteed.",
-    "useActor invalidates and refetches nearly all queries on actor change, which can cause redundant network calls and UI thrash on login/logout."
-  ],
-  "isFixRequest": false,
-  "generatedImages": [],
-  "gameProjectType": "none",
-  "projectName": "GB Insurance",
+  "projectName": "Fix Reset Admin Credentials failure on live admin login/dashboard",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

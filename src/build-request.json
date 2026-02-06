@@ -1,35 +1,111 @@
 {
   "kind": "build_request",
-  "title": "Remove “Open shareable preview image” option from admin dashboard",
+  "title": "Fix Reset Admin Credentials failure on live admin login/dashboard",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Remove the admin-dashboard UI option/action labeled “Open shareable preview image” so it is not shown anywhere within the admin dashboard experience (Dashboard page and any dashboard-related components/menus/actions).",
+      "text": "Make the “Reset Admin Credentials” flow work reliably on the deployed (live) site by ensuring the frontend can always create a working backend actor on the target network and does not fail due to missing/invalid admin token initialization.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-7"
+          "msg-1"
         ],
         "quotes": [
-          "Remove the \"open shareable preview image\" option from the dashboard",
-          "do it"
+          "Reset Admin Credentials is not working",
+          "only on the deployed version"
         ]
       },
       "acceptanceCriteria": [
-        "When viewing the admin dashboard route, there is no button/link/menu item labeled “Open shareable preview image”.",
-        "No dashboard UI interaction opens the shareable preview image in a new tab/window.",
-        "The removal does not affect non-dashboard pages (e.g., the public homepage) unless the removed control was actually shared/reused by the dashboard."
+        "On the live deployment, opening the Admin Login page and clicking “Reset Admin Credentials” does not fail with a generic backend connection error when the backend canister is reachable.",
+        "If a secret admin token is missing/empty, actor initialization must still succeed and allow non-token operations (e.g., healthCheck, password reset) to be called; any token-related failure must be handled without breaking actor creation.",
+        "Any actor initialization error that prevents backend calls is surfaced to the user as a clear error state on the Admin Login page (in English), and the page provides a retry action."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Require an authenticated Internet Identity session before attempting to reset the admin password, and guide the user through authentication if they try to reset while unauthenticated.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Reset Admin Credentials is not working",
+          "only on the deployed version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If the user is not authenticated (anonymous principal), the reset action is blocked and the UI clearly instructs the user to sign in with Internet Identity first.",
+        "If the user clicks reset while unauthenticated, the UI offers (or triggers) Internet Identity login and only proceeds to call resetAdminPassword after authentication succeeds.",
+        "After a successful reset, the UI refreshes admin status and provides a success confirmation without redirect loops or blank states."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Improve error handling for the reset password call so that live-site failures (traps, unauthorized, timeouts, unreachable backend) are correctly categorized and displayed, avoiding “no response” and “wrong redirect” outcomes.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "rror message, no response, wrong redirect.",
+          "only on the deployed version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If resetAdminPassword traps (e.g., invalid reset code, password policy), the user sees the trap message (or a safe, human-readable mapped message) in the reset dialog instead of a silent failure.",
+        "If the backend is unreachable, the reset UI shows a dedicated connectivity error state and does not attempt admin-status redirect logic.",
+        "The page never redirects to /dashboard as a result of reset unless admin verification actually returns true; redirect behavior is consistent between local and deployed environments."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Harden the backend resetAdminPassword endpoint to prevent insecure or inconsistent behavior across environments by explicitly rejecting anonymous callers and returning consistent errors for invalid input.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Reset Admin Credentials is not working",
+          "only on the deployed version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "resetAdminPassword rejects anonymous callers with a clear trap message (English) instructing the user to authenticate with Internet Identity first.",
+        "resetAdminPassword continues to validate reset code and minimum password length, and returns/throws consistent errors that the frontend can display.",
+        "Successful reset still clears failed login attempts and (when applicable) grants admin role to the authenticated caller."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Add a focused regression check for the deployed scenario: verify that Admin Login, Reset Admin Credentials, and subsequent admin verification behave the same on local and deployed networks.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "only on the deployed version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Document a short manual test checklist (steps + expected outcomes) covering: (1) authenticate with Internet Identity, (2) reset password with reset code, (3) login with password, (4) reach /dashboard, and (5) behavior when backend is unreachable.",
+        "The checklist includes how to confirm backend reachability via the existing healthCheck endpoint and what the UI should display for each health status."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT."
+    "Backend must remain a single Motoko actor in backend/main.mo; only add migration.mo if an upgrade/state migration is required.",
+    "Do not edit files under frontend/src/components/ui or any frontend immutable paths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx); compose around them instead.",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Do not remove or rename any generated image assets from frontend/public/assets/generated unless they are exclusively used by the removed dashboard option.",
-    "Do not change backend APIs or access control behavior."
+    "Do not add third-party authentication providers (only Internet Identity is supported).",
+    "Do not introduce external databases or non-IC backend services.",
+    "Do not implement new admin features beyond fixing/resetting credentials and stabilizing the existing admin login/dashboard flow."
   ],
   "imageRequirements": {
     "required": [],
