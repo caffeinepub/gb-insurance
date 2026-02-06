@@ -76,6 +76,7 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getFormById' : ActorMethod<[bigint], [] | [CustomerForm]>,
+  'getFormsByInsuranceType' : ActorMethod<[InsuranceType], Array<CustomerForm>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVisitorCount' : ActorMethod<[], bigint>,
   'getVisitorStats' : ActorMethod<[], VisitorAnalytics>,

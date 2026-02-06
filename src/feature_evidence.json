@@ -1,43 +1,4 @@
 {
   "kind": "feature_evidence_report",
-  "features": [
-    {
-      "featureId": "feature-add-the-user-uploaded-image-image-3-png-to-the-app-as-a-static-asset-under-frontend-public-assets-generated-and-update-the-home-page-hero-banner-to-render-this-exact-image-so-it-is-visible-on-the-deployed-site",
-      "featureTitle": "Add the user-uploaded image (image-3.png) to the app as a static asset under frontend/public/assets/generated, and update the Home page hero banner to render this exact image so it is visible on the deployed site.",
-      "files": [
-        "frontend/src/components/Hero.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-html-preload-tag-to-preload-the-new-hero-banner-image-path-replacing-the-current-preload-of-assets-generated-image-2-png-so-the-correct-image-is-prioritized-on-first-paint",
-      "featureTitle": "Update the HTML preload tag to preload the new hero banner image path (replacing the current preload of /assets/generated/image-2.png) so the correct image is prioritized on first paint.",
-      "files": [
-        "frontend/index.html"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    }
-  ]
+  "features": []
 }

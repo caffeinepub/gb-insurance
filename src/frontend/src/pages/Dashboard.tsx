@@ -12,6 +12,7 @@ import type { CustomerForm, InsuranceType } from '../backend';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { getSessionParameter } from '../utils/urlParams';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const [filterType, setFilterType] = useState<InsuranceType | 'all'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'date'>('date');
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [isManualRetrying, setIsManualRetrying] = useState(false);
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
 
@@ -52,9 +54,24 @@ export default function Dashboard() {
     navigate({ to: '/' });
   };
 
-  const handleManualRefresh = () => {
-    refetchForms();
+  const handleManualRefresh = async () => {
+    setIsManualRetrying(true);
     setRetryAttempt(0);
+    try {
+      await refetchForms();
+    } finally {
+      setIsManualRetrying(false);
+    }
+  };
+
+  const handleErrorRetry = async () => {
+    setIsManualRetrying(true);
+    setRetryAttempt(0);
+    try {
+      await Promise.all([refetchForms(), refetchAdminStatus()]);
+    } finally {
+      setIsManualRetrying(false);
+    }
   };
 
   // Show access denied if not admin
@@ -96,9 +113,10 @@ export default function Dashboard() {
           <Button
             onClick={handleManualRefresh}
             variant="outline"
+            disabled={isManualRetrying || formsLoading}
             className="border-2 border-border hover:border-primary transition-smooth"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
             Refresh Data
           </Button>
         </div>
@@ -121,9 +139,23 @@ export default function Dashboard() {
         {formsError && (
           <Alert variant="destructive" className="mb-6 animate-fade-in border-2">
             <AlertCircle className="h-5 w-5" />
-            <AlertTitle className="font-bold">Error Loading Data</AlertTitle>
-            <AlertDescription className="font-medium">
-              {retryAttempt < 2 ? 'Retrying...' : 'Failed to load customer submissions. Please try refreshing the page.'}
+            <AlertTitle className="font-bold">Error Loading Customer Submissions</AlertTitle>
+            <AlertDescription className="font-medium space-y-3">
+              <p>
+                {retryAttempt < 2 
+                  ? 'Attempting to reconnect and load customer data...' 
+                  : 'Unable to load customer submissions. This may be due to a connection issue or authorization problem.'}
+              </p>
+              <Button
+                onClick={handleErrorRetry}
+                variant="outline"
+                size="sm"
+                disabled={isManualRetrying}
+                className="bg-background hover:bg-background/80 border-2 border-background text-destructive-foreground hover:text-destructive-foreground font-bold"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isManualRetrying ? 'animate-spin' : ''}`} />
+                {isManualRetrying ? 'Retrying...' : 'Retry Loading Data'}
+              </Button>
             </AlertDescription>
           </Alert>
         )}

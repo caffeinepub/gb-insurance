@@ -56,6 +56,7 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getFormById(id: bigint): Promise<CustomerForm | null>;
+    getFormsByInsuranceType(insuranceType: InsuranceType): Promise<Array<CustomerForm>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisitorCount(): Promise<bigint>;
     getVisitorStats(): Promise<VisitorAnalytics>;

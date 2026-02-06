@@ -1,32 +1,45 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-03T09:42:25.092Z",
-  "summary": "Hero banner image source and HTML preload were updated to point to /assets/generated/gb-hero-banner.dim_1600x900.png, but the diff does not show the required new static asset being added. The Hero component also introduces an additional shareable preview link that was not requested.",
+  "generatedAt": "2026-02-04T18:36:32.255Z",
+  "summary": "REQ-1 (removing the “Open shareable preview image” option from the admin dashboard UI) is not evidenced as implemented in the provided diff summary. The changes shown relate to the public Hero component/banner image and documentation/state summary files, which are not requested by the BuildRequest.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Add the user-uploaded image (image-3.png) to the app as a static asset under frontend/public/assets/generated, and update the Home page hero banner to render this exact image so it is visible on the deployed site.",
-      "reason": "The Hero component was updated to reference /assets/generated/gb-hero-banner.dim_1600x900.png, but the diff shows no added file under frontend/public/assets/generated (no added files at all). Therefore the requirement to add the user-uploaded image as a static asset is not evidenced as implemented.",
+      "requirement": "Remove the admin-dashboard UI option/action labeled “Open shareable preview image” so it is not shown anywhere within the admin dashboard experience (Dashboard page and any dashboard-related components/menus/actions).",
+      "reason": "No diff evidence shows edits to the admin dashboard page or dashboard-related components/menus/actions that would remove a control labeled “Open shareable preview image”, nor any removal of logic that opens the shareable preview image from the dashboard.",
       "evidence": [
-        "File diff summary: \"Added: 0\"",
-        "frontend/src/components/Hero.tsx (references /assets/generated/gb-hero-banner.dim_1600x900.png)"
+        "frontend-file-summaries.txt (lists Dashboard-related files but shows no actual code changes removing the option)",
+        "No modified file shown for frontend/src/pages/Dashboard.tsx or dashboard components in the diff summary"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added a 'Shareable Preview Link' button that opens /assets/generated/gb-hero-share-preview.dim_1200x630.png.",
-      "reason": "BuildRequest scope was limited to swapping the hero banner image asset and updating its preload reference; no requirement requested adding a share-preview link or referencing an additional share-preview image asset.",
+      "description": "Added/changed Hero banner image display with error handling and updated hero content/stats cards (public homepage UI change).",
+      "reason": "The BuildRequest only asks to remove an admin dashboard option; it explicitly notes non-dashboard pages should not be affected unless shared. The diff shows direct edits to the homepage Hero component instead.",
       "evidence": [
-        "frontend/src/components/Hero.tsx (\"Shareable Preview Link\" section referencing /assets/generated/gb-hero-share-preview.dim_1200x630.png)"
+        "frontend/src/components/Hero.tsx"
+      ]
+    },
+    {
+      "description": "Updated/modified project summary/state documentation describing existing features (including mention of “Hero (banner image + shareable preview link)”).",
+      "reason": "Not requested by the BuildRequest; also does not demonstrate removal of the dashboard option.",
+      "evidence": [
+        "project_state.json"
+      ]
+    },
+    {
+      "description": "Updated generated file summary descriptions (including dashboard feature descriptions) without shown corresponding code changes for the requested removal.",
+      "reason": "Not requested by the BuildRequest; no evidence of implementing REQ-1 in actual dashboard code.",
+      "evidence": [
+        "frontend-file-summaries.txt"
       ]
     }
   ],
   "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/index.html",
     "frontend/src/components/Hero.tsx",
     "project_state.json"
   ]

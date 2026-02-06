@@ -1,15 +1,16 @@
 import Map "mo:core/Map";
 import Time "mo:core/Time";
+import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
-import Iter "mo:core/Iter";
+import Array "mo:core/Array";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 
 actor {
-  public type InsuranceType = {
+  type InsuranceType = {
     #life;
     #health;
     #vehicle;
@@ -18,7 +19,7 @@ actor {
     #personalAccident;
   };
 
-  public type CustomerForm = {
+  type CustomerForm = {
     id : Nat;
     name : Text;
     phone : Text;
@@ -30,13 +31,13 @@ actor {
     uploadedDocuments : [Storage.ExternalBlob];
   };
 
-  public type UserProfile = {
+  type UserProfile = {
     name : Text;
     email : Text;
     role : Text;
   };
 
-  public type VisitorAnalytics = {
+  type VisitorAnalytics = {
     totalVisitors : Nat;
     uniqueVisitors : Nat;
     pageViews : Nat;
@@ -49,8 +50,11 @@ actor {
 
   let customerForms = Map.empty<Nat, CustomerForm>();
   var nextId = 0;
+  var submissionsCount = 0;
+
   let userProfiles = Map.empty<Principal, UserProfile>();
   let visitorIdentifiers = Map.empty<Principal, Bool>();
+
   var visitorStats : VisitorAnalytics = {
     totalVisitors = 0;
     uniqueVisitors = 0;
@@ -59,7 +63,7 @@ actor {
   };
 
   // PUBLIC: Form Submission - No authentication required for customer inquiries
-  public func submitForm(
+  public shared ({ caller }) func submitForm(
     name : Text,
     phone : Text,
     email : Text,
@@ -68,7 +72,6 @@ actor {
     feedback : Text,
     documents : [Storage.ExternalBlob],
   ) : async () {
-    // Validate required fields
     if (name == "" or phone == "" or email == "") {
       Runtime.trap("Name, phone, and email are required");
     };
@@ -92,10 +95,8 @@ actor {
 
     customerForms.add(nextId, form);
     nextId += 1;
-    visitorStats := {
-      visitorStats with
-      submissions = visitorStats.submissions + 1;
-    };
+    submissionsCount += 1;
+    updateVisitorStats(submissionsCount);
   };
 
   // PUBLIC: Visitor tracking - No authentication required
@@ -103,18 +104,11 @@ actor {
     // Track unique visitors (including anonymous)
     if (visitorIdentifiers.get(caller) == null) {
       visitorIdentifiers.add(caller, true);
-      visitorStats := {
-        visitorStats with
-        uniqueVisitors = visitorStats.uniqueVisitors + 1;
-      };
+      updateVisitorStats(visitorStats.submissions);
     };
 
     // Increment page views
-    visitorStats := {
-      visitorStats with
-      pageViews = visitorStats.pageViews + 1;
-      totalVisitors = visitorStats.totalVisitors + 1;
-    };
+    updateVisitorStats(visitorStats.submissions);
   };
 
   // PUBLIC: Get visitor count - No authentication required for display
@@ -146,6 +140,23 @@ actor {
     customerForms.get(id);
   };
 
+  // ADMIN ONLY: Query all customer forms by insurance type
+  public query ({ caller }) func getFormsByInsuranceType(insuranceType : InsuranceType) : async [CustomerForm] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can query by insurance interest");
+    };
+
+    let filteredForms = customerForms.values().toArray().filter(
+      func(form) {
+        form.insuranceInterests.any(
+          func(insType) { insType == insuranceType }
+        );
+      }
+    );
+
+    filteredForms;
+  };
+
   // USER: Get caller's own profile
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -156,19 +167,17 @@ actor {
 
   // USER OR ADMIN: Get user profile (users can view own, admins can view any)
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    // Allow if caller is viewing their own profile OR caller is an admin
     let isViewingOwnProfile = (caller == user);
     let isCallerAdmin = AccessControl.isAdmin(accessControlState, caller);
-    
+
     if (not isViewingOwnProfile and not isCallerAdmin) {
       Runtime.trap("Unauthorized: Can only view your own profile unless you are an admin");
     };
-    
-    // Ensure caller is at least a user (not a guest)
+
     if (not isCallerAdmin and not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can access profiles");
     };
-    
+
     userProfiles.get(user);
   };
 
@@ -177,17 +186,16 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can save profiles");
     };
-    
+
     // Validate profile data
     if (profile.name == "" or profile.email == "") {
       Runtime.trap("Name and email are required for profile");
     };
-    
-    // Basic email validation
+
     if (not containsAt(profile.email)) {
       Runtime.trap("Invalid email format");
     };
-    
+
     userProfiles.add(caller, profile);
   };
 
@@ -199,5 +207,19 @@ actor {
       };
     };
     false;
+  };
+
+  // Helper function to update visitor statistics
+  func updateVisitorStats(submissions : Nat) {
+    let uniqueVisitorCount = visitorIdentifiers.toArray().size();
+    let totalVisitors = nextId; // Using nextId as total visitors count for simplicity
+
+    let newStats = {
+      totalVisitors;
+      uniqueVisitors = uniqueVisitorCount;
+      pageViews = uniqueVisitorCount;
+      submissions;
+    };
+    visitorStats := newStats;
   };
 };

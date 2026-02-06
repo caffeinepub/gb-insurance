@@ -90,6 +90,11 @@ export const idlService = IDL.Service({
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getFormById' : IDL.Func([IDL.Nat], [IDL.Opt(CustomerForm)], ['query']),
+  'getFormsByInsuranceType' : IDL.Func(
+      [InsuranceType],
+      [IDL.Vec(CustomerForm)],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -200,6 +205,11 @@ export const idlFactory = ({ IDL }) => {
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getFormById' : IDL.Func([IDL.Nat], [IDL.Opt(CustomerForm)], ['query']),
+    'getFormsByInsuranceType' : IDL.Func(
+        [InsuranceType],
+        [IDL.Vec(CustomerForm)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

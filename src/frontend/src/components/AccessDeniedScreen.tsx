@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldAlert, LogOut, Home } from 'lucide-react';
+import { ShieldAlert, LogOut, Home, AlertCircle } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import { getSessionParameter } from '../utils/urlParams';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AccessDeniedScreenProps {
   onLogout: () => void;
@@ -9,6 +11,7 @@ interface AccessDeniedScreenProps {
 
 export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps) {
   const navigate = useNavigate();
+  const adminInitError = getSessionParameter('adminInitError');
 
   const handleGoHome = () => {
     navigate({ to: '/' });
@@ -29,13 +32,20 @@ export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
+          {adminInitError && (
+            <Alert variant="destructive" className="border-2">
+              <AlertCircle className="h-5 w-5" />
+              <AlertDescription className="font-medium">{adminInitError}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="bg-muted rounded-lg p-5 text-sm text-foreground border-[3px] border-secondary">
             <p className="mb-3 font-bold text-foreground">
               Administrator Access Required
             </p>
             <p className="font-medium">
-              The first authenticated user who accessed this application was automatically assigned as the primary administrator. 
-              Only the primary administrator has access to the dashboard and customer data management features.
+              Your account is not authorized for admin access. Admin privileges are granted via a secure admin token link. 
+              Please contact the system administrator or use a valid admin token link to gain access.
             </p>
           </div>
           <div className="space-y-3">
@@ -61,4 +71,3 @@ export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps
     </div>
   );
 }
-

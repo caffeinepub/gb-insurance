@@ -8,6 +8,7 @@ import { Shield, CheckCircle2, Loader2, ArrowLeft, AlertCircle } from 'lucide-re
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { getSessionParameter, clearSessionParameter } from '../utils/urlParams';
 
 type AuthStep = 'idle' | 'authenticating' | 'verifying' | 'success' | 'error';
 
@@ -20,6 +21,15 @@ export default function AdminLoginPage() {
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
 
+  // Check for persisted admin initialization error
+  useEffect(() => {
+    const adminInitError = getSessionParameter('adminInitError');
+    if (adminInitError && !errorMessage) {
+      setErrorMessage(adminInitError);
+      setAuthStep('error');
+    }
+  }, [errorMessage]);
+
   const checkAdminStatusAndRedirect = useCallback(async () => {
     if (authStep !== 'idle') return;
     
@@ -28,6 +38,8 @@ export default function AdminLoginPage() {
       const { data: isAdmin } = await refetchAdminStatus();
       if (isAdmin) {
         setAuthStep('success');
+        // Clear any admin init errors on success
+        clearSessionParameter('adminInitError');
         setTimeout(() => {
           navigate({ to: '/dashboard' });
         }, 1500);
@@ -49,6 +61,8 @@ export default function AdminLoginPage() {
 
   const handleLoginAsAdmin = async () => {
     setErrorMessage(null);
+    // Clear any previous admin init errors
+    clearSessionParameter('adminInitError');
     
     try {
       // Step 1: Authenticate with Internet Identity
@@ -97,12 +111,19 @@ export default function AdminLoginPage() {
       if (isAdmin) {
         // Success - show confirmation
         setAuthStep('success');
+        // Clear any admin init errors on success
+        clearSessionParameter('adminInitError');
         setTimeout(() => {
           navigate({ to: '/dashboard' });
         }, 1500);
       } else {
-        // Not admin
-        setErrorMessage('You are not authorized as an administrator. Only the first user to log in becomes the admin.');
+        // Not admin - check if there was an initialization error
+        const adminInitError = getSessionParameter('adminInitError');
+        if (adminInitError) {
+          setErrorMessage(adminInitError);
+        } else {
+          setErrorMessage('Your account is not authorized for admin access. An admin token link may be required to grant admin privileges.');
+        }
         setAuthStep('error');
       }
     } catch (error: any) {
@@ -120,6 +141,8 @@ export default function AdminLoginPage() {
   const handleRetry = () => {
     setAuthStep('idle');
     setErrorMessage(null);
+    // Clear admin init error to allow fresh attempt
+    clearSessionParameter('adminInitError');
   };
 
   // Show loading during initialization
@@ -194,7 +217,7 @@ export default function AdminLoginPage() {
                   <h3 className="font-bold text-sm text-foreground">Internet Identity Required</h3>
                   <p className="text-sm text-foreground font-medium">
                     To access the admin dashboard, you need to authenticate using Internet Identity. 
-                    This ensures secure and decentralized access to customer data and management features.
+                    Admin authorization is granted via a secure admin token link.
                   </p>
                   <div className="pt-2 space-y-2 text-xs text-foreground font-medium">
                     <p>✓ Secure authentication</p>
@@ -271,4 +294,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-

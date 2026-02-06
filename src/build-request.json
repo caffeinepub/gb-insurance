@@ -1,57 +1,38 @@
 {
   "kind": "build_request",
-  "title": "Make the user-provided hero image visible in the app",
+  "title": "Remove “Open shareable preview image” option from admin dashboard",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add the user-uploaded image (image-3.png) to the app as a static asset under frontend/public/assets/generated, and update the Home page hero banner to render this exact image so it is visible on the deployed site.",
+      "text": "Remove the admin-dashboard UI option/action labeled “Open shareable preview image” so it is not shown anywhere within the admin dashboard experience (Dashboard page and any dashboard-related components/menus/actions).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-3",
+          "msg-7"
         ],
         "quotes": [
-          "i want this image which i cannot find in the app"
+          "Remove the \"open shareable preview image\" option from the dashboard",
+          "do it"
         ]
       },
       "acceptanceCriteria": [
-        "The hero banner image on the Home page renders the user-provided image (no broken image / fallback behavior triggered).",
-        "The hero banner image URL returns HTTP 200 in the deployed build and is accessible at a stable path under /assets/generated/.",
-        "No console warning appears about the hero image failing to load (i.e., Hero.tsx onError is not triggered under normal load)."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Update the HTML preload tag to preload the new hero banner image path (replacing the current preload of /assets/generated/image-2.png) so the correct image is prioritized on first paint.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-5"
-        ],
-        "quotes": [
-          "i want this image which i cannot find in the app"
-        ]
-      },
-      "acceptanceCriteria": [
-        "frontend/index.html preloads the same hero image asset that Hero.tsx renders.",
-        "The app no longer references /assets/generated/image-2.png for the hero banner (unless used elsewhere intentionally)."
+        "When viewing the admin dashboard route, there is no button/link/menu item labeled “Open shareable preview image”.",
+        "No dashboard UI interaction opens the shareable preview image in a new tab/window.",
+        "The removal does not affect non-dashboard pages (e.g., the public homepage) unless the removed control was actually shared/reused by the dashboard."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (compose with them only).",
-    "Do not edit immutable hook paths listed in SYSTEM_CONTEXT.frontend.immutablePaths."
+    "Do not edit files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "No backend changes.",
-    "No changes to Internet Identity authentication, admin access control, or dashboard functionality.",
-    "No redesign of the overall site layout beyond swapping the hero banner image asset and its preload reference."
+    "Do not remove or rename any generated image assets from frontend/public/assets/generated unless they are exclusively used by the removed dashboard option.",
+    "Do not change backend APIs or access control behavior."
   ],
   "imageRequirements": {
-    "required": [
-      "User-provided GB Insurance promotional vehicle montage image (gb-hero-banner.dim_1600x900.png)"
-    ],
+    "required": [],
     "edits": []
   }
 }

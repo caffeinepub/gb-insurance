@@ -149,6 +149,7 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getFormById(id: bigint): Promise<CustomerForm | null>;
+    getFormsByInsuranceType(insuranceType: InsuranceType): Promise<Array<CustomerForm>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisitorCount(): Promise<bigint>;
     getVisitorStats(): Promise<VisitorAnalytics>;
@@ -328,6 +329,20 @@ export class Backend implements backendInterface {
             return from_candid_opt_n21(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getFormsByInsuranceType(arg0: InsuranceType): Promise<Array<CustomerForm>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFormsByInsuranceType(to_candid_InsuranceType_n22(this._uploadFile, this._downloadFile, arg0));
+                return from_candid_vec_n10(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFormsByInsuranceType(to_candid_InsuranceType_n22(this._uploadFile, this._downloadFile, arg0));
+            return from_candid_vec_n10(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -415,14 +430,14 @@ export class Backend implements backendInterface {
     async submitForm(arg0: string, arg1: string, arg2: string, arg3: string, arg4: Array<InsuranceType>, arg5: string, arg6: Array<ExternalBlob>): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.submitForm(arg0, arg1, arg2, arg3, to_candid_vec_n22(this._uploadFile, this._downloadFile, arg4), arg5, await to_candid_vec_n25(this._uploadFile, this._downloadFile, arg6));
+                const result = await this.actor.submitForm(arg0, arg1, arg2, arg3, to_candid_vec_n24(this._uploadFile, this._downloadFile, arg4), arg5, await to_candid_vec_n25(this._uploadFile, this._downloadFile, arg6));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.submitForm(arg0, arg1, arg2, arg3, to_candid_vec_n22(this._uploadFile, this._downloadFile, arg4), arg5, await to_candid_vec_n25(this._uploadFile, this._downloadFile, arg6));
+            const result = await this.actor.submitForm(arg0, arg1, arg2, arg3, to_candid_vec_n24(this._uploadFile, this._downloadFile, arg4), arg5, await to_candid_vec_n25(this._uploadFile, this._downloadFile, arg6));
             return result;
         }
     }
@@ -535,8 +550,8 @@ function from_candid_vec_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 async function to_candid_ExternalBlob_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ExternalBlob): Promise<_ExternalBlob> {
     return await _uploadFile(value);
 }
-function to_candid_InsuranceType_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: InsuranceType): _InsuranceType {
-    return to_candid_variant_n24(_uploadFile, _downloadFile, value);
+function to_candid_InsuranceType_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: InsuranceType): _InsuranceType {
+    return to_candid_variant_n23(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n9(_uploadFile, _downloadFile, value);
@@ -556,7 +571,7 @@ function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
         proposed_top_up_amount: value.proposed_top_up_amount ? candid_some(value.proposed_top_up_amount) : candid_none()
     };
 }
-function to_candid_variant_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: InsuranceType): {
+function to_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: InsuranceType): {
     travel: null;
 } | {
     life: null;
@@ -598,8 +613,8 @@ function to_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         guest: null
     } : value;
 }
-function to_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<InsuranceType>): Array<_InsuranceType> {
-    return value.map((x)=>to_candid_InsuranceType_n23(_uploadFile, _downloadFile, x));
+function to_candid_vec_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<InsuranceType>): Array<_InsuranceType> {
+    return value.map((x)=>to_candid_InsuranceType_n22(_uploadFile, _downloadFile, x));
 }
 async function to_candid_vec_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<ExternalBlob>): Promise<Array<_ExternalBlob>> {
     return await Promise.all(value.map(async (x)=>await to_candid_ExternalBlob_n26(_uploadFile, _downloadFile, x)));

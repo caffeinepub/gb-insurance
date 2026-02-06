@@ -1,41 +1,36 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Wire user-provided hero image into Home hero banner and preload",
+  "title": "Remove shareable preview image action from admin dashboard UI",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add the user-provided hero image as a generated static asset and render it in the Home page hero banner.",
+      "summary": "Remove any admin-dashboard UI control labeled “Open shareable preview image” and ensure no dashboard interaction opens the share-preview image in a new tab/window.",
       "acceptanceCriteria": [
-        "The hero banner image on the Home page renders the user-provided image (no broken image / fallback behavior triggered).",
-        "The hero banner image URL returns HTTP 200 in the deployed build and is accessible at a stable path under /assets/generated/.",
-        "No console warning appears about the hero image failing to load (i.e., Hero.tsx onError is not triggered under normal load)."
+        "When viewing the admin dashboard route, there is no button/link/menu item labeled “Open shareable preview image”.",
+        "No dashboard UI interaction opens the shareable preview image in a new tab/window.",
+        "The removal does not affect non-dashboard pages (e.g., the public homepage) unless the removed control was actually shared/reused by the dashboard."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/assets/generated/gb-hero-banner.dim_1600x900.png",
-          "operation": "create",
-          "description": "Add the user-provided image content (from image-3.png) as a generated static asset at this exact path so it can be served reliably in production."
+          "path": "frontend/src/components/DashboardHeader.tsx",
+          "operation": "modify",
+          "description": "Remove any dashboard header action/link/menu entry labeled “Open shareable preview image” and any associated click handler (e.g., window.open) if present or introduced via shared header variants; confirm the dashboard header renders without that control."
         },
         {
-          "path": "frontend/src/components/Hero.tsx",
+          "path": "frontend/src/pages/Dashboard.tsx",
           "operation": "modify",
-          "description": "Update the hero banner <img> to render /assets/generated/gb-hero-banner.dim_1600x900.png (replacing the current /assets/generated/image-2.png) so the Home page shows the user-provided image and does not trigger the onError fallback under normal load."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Preload the new hero banner asset in index.html and remove the old hero preload reference.",
-      "acceptanceCriteria": [
-        "frontend/index.html preloads the same hero image asset that Hero.tsx renders.",
-        "The app no longer references /assets/generated/image-2.png for the hero banner (unless used elsewhere intentionally)."
-      ],
-      "file_operations": [
+          "description": "Audit and remove any dashboard-level UI wiring that could render or trigger “Open shareable preview image” (including any callback that opens the generated share-preview image in a new tab/window) while keeping all other dashboard functionality unchanged."
+        },
         {
-          "path": "frontend/index.html",
+          "path": "frontend/src/components/DashboardTable.tsx",
           "operation": "modify",
-          "description": "Replace the current image preload href (/assets/generated/image-2.png) with /assets/generated/gb-hero-banner.dim_1600x900.png so the preloaded asset matches the hero banner image rendered by Hero.tsx."
+          "description": "Ensure the dashboard table does not include any action labeled “Open shareable preview image” and does not open the share-preview image asset; keep existing document view/download behaviors intact."
+        },
+        {
+          "path": "frontend/src/components/DashboardFilters.tsx",
+          "operation": "modify",
+          "description": "Verify dashboard filters do not render or reference any action labeled “Open shareable preview image”; remove any such UI element if found without impacting filtering/sorting."
         }
       ]
     }

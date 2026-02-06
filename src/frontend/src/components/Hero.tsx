@@ -1,4 +1,4 @@
-import { Shield, Users, Award, TrendingUp, Share2 } from 'lucide-react';
+import { Shield, Users, Award, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Hero() {
@@ -22,19 +22,6 @@ export default function Hero() {
             />
           </div>
         )}
-
-        {/* Shareable Preview Link */}
-        <div className="mb-8 text-center animate-fade-in">
-          <a
-            href="/assets/generated/gb-hero-share-preview.dim_1200x630.png"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-          >
-            <Share2 className="h-5 w-5" />
-            Open shareable preview image
-          </a>
-        </div>
 
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
