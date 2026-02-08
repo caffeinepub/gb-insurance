@@ -10,6 +10,11 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AppSettings {
+  'officeHours' : string,
+  'maintenanceMode' : boolean,
+  'contactEmail' : string,
+}
 export interface CustomerForm {
   'id' : bigint,
   'uploadedDocuments' : Array<ExternalBlob>,
@@ -28,6 +33,26 @@ export type InsuranceType = { 'travel' : null } |
   { 'property' : null } |
   { 'vehicle' : null } |
   { 'health' : null };
+export interface ServiceInfo {
+  'title' : string,
+  'icon' : [] | [ExternalBlob],
+  'description' : string,
+}
+export interface SiteContent {
+  'homeTitle' : string,
+  'heroText' : string,
+  'heroImage' : [] | [ExternalBlob],
+  'generalInfo' : string,
+  'testimonials' : Array<Testimonial>,
+  'homeDescription' : string,
+  'services' : Array<ServiceInfo>,
+}
+export interface Testimonial {
+  'serviceUsed' : string,
+  'clientName' : string,
+  'feedback' : string,
+  'rating' : bigint,
+}
 export type Time = bigint;
 export interface UserProfile {
   'name' : string,
@@ -37,12 +62,6 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
-export interface VisitorAnalytics {
-  'totalVisitors' : bigint,
-  'submissions' : bigint,
-  'pageViews' : bigint,
-  'uniqueVisitors' : bigint,
-}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -74,15 +93,16 @@ export interface _SERVICE {
   'adminLoginWithPassword' : ActorMethod<[string], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllForms' : ActorMethod<[], Array<CustomerForm>>,
+  'getAppSettings' : ActorMethod<[], AppSettings>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getFormById' : ActorMethod<[bigint], [] | [CustomerForm]>,
   'getFormsByInsuranceType' : ActorMethod<[InsuranceType], Array<CustomerForm>>,
+  'getSiteContent' : ActorMethod<[], SiteContent>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVisitorCount' : ActorMethod<[], bigint>,
-  'getVisitorStats' : ActorMethod<[], VisitorAnalytics>,
-  'healthCheck' : ActorMethod<[], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'listAllUserProfiles' : ActorMethod<[], Array<[Principal, UserProfile]>>,
   'recordVisitor' : ActorMethod<[], undefined>,
   'resetAdminPassword' : ActorMethod<[string, string], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
@@ -98,6 +118,9 @@ export interface _SERVICE {
     ],
     undefined
   >,
+  'updateAppSettings' : ActorMethod<[AppSettings], undefined>,
+  'updateSiteContent' : ActorMethod<[SiteContent], undefined>,
+  'updateUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

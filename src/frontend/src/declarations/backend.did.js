@@ -45,16 +45,35 @@ export const CustomerForm = IDL.Record({
   'timestamp' : Time,
   'phone' : IDL.Text,
 });
+export const AppSettings = IDL.Record({
+  'officeHours' : IDL.Text,
+  'maintenanceMode' : IDL.Bool,
+  'contactEmail' : IDL.Text,
+});
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'role' : IDL.Text,
   'email' : IDL.Text,
 });
-export const VisitorAnalytics = IDL.Record({
-  'totalVisitors' : IDL.Nat,
-  'submissions' : IDL.Nat,
-  'pageViews' : IDL.Nat,
-  'uniqueVisitors' : IDL.Nat,
+export const Testimonial = IDL.Record({
+  'serviceUsed' : IDL.Text,
+  'clientName' : IDL.Text,
+  'feedback' : IDL.Text,
+  'rating' : IDL.Nat,
+});
+export const ServiceInfo = IDL.Record({
+  'title' : IDL.Text,
+  'icon' : IDL.Opt(ExternalBlob),
+  'description' : IDL.Text,
+});
+export const SiteContent = IDL.Record({
+  'homeTitle' : IDL.Text,
+  'heroText' : IDL.Text,
+  'heroImage' : IDL.Opt(ExternalBlob),
+  'generalInfo' : IDL.Text,
+  'testimonials' : IDL.Vec(Testimonial),
+  'homeDescription' : IDL.Text,
+  'services' : IDL.Vec(ServiceInfo),
 });
 
 export const idlService = IDL.Service({
@@ -88,6 +107,7 @@ export const idlService = IDL.Service({
   'adminLoginWithPassword' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getAllForms' : IDL.Func([], [IDL.Vec(CustomerForm)], ['query']),
+  'getAppSettings' : IDL.Func([], [AppSettings], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getFormById' : IDL.Func([IDL.Nat], [IDL.Opt(CustomerForm)], ['query']),
@@ -96,15 +116,19 @@ export const idlService = IDL.Service({
       [IDL.Vec(CustomerForm)],
       ['query'],
     ),
+  'getSiteContent' : IDL.Func([], [SiteContent], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'getVisitorCount' : IDL.Func([], [IDL.Nat], ['query']),
-  'getVisitorStats' : IDL.Func([], [VisitorAnalytics], ['query']),
-  'healthCheck' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'listAllUserProfiles' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
+      ['query'],
+    ),
   'recordVisitor' : IDL.Func([], [], []),
   'resetAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
@@ -121,6 +145,9 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'updateAppSettings' : IDL.Func([AppSettings], [], []),
+  'updateSiteContent' : IDL.Func([SiteContent], [], []),
+  'updateUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
 });
 
 export const idlInitArgs = [];
@@ -163,16 +190,35 @@ export const idlFactory = ({ IDL }) => {
     'timestamp' : Time,
     'phone' : IDL.Text,
   });
+  const AppSettings = IDL.Record({
+    'officeHours' : IDL.Text,
+    'maintenanceMode' : IDL.Bool,
+    'contactEmail' : IDL.Text,
+  });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'role' : IDL.Text,
     'email' : IDL.Text,
   });
-  const VisitorAnalytics = IDL.Record({
-    'totalVisitors' : IDL.Nat,
-    'submissions' : IDL.Nat,
-    'pageViews' : IDL.Nat,
-    'uniqueVisitors' : IDL.Nat,
+  const Testimonial = IDL.Record({
+    'serviceUsed' : IDL.Text,
+    'clientName' : IDL.Text,
+    'feedback' : IDL.Text,
+    'rating' : IDL.Nat,
+  });
+  const ServiceInfo = IDL.Record({
+    'title' : IDL.Text,
+    'icon' : IDL.Opt(ExternalBlob),
+    'description' : IDL.Text,
+  });
+  const SiteContent = IDL.Record({
+    'homeTitle' : IDL.Text,
+    'heroText' : IDL.Text,
+    'heroImage' : IDL.Opt(ExternalBlob),
+    'generalInfo' : IDL.Text,
+    'testimonials' : IDL.Vec(Testimonial),
+    'homeDescription' : IDL.Text,
+    'services' : IDL.Vec(ServiceInfo),
   });
   
   return IDL.Service({
@@ -206,6 +252,7 @@ export const idlFactory = ({ IDL }) => {
     'adminLoginWithPassword' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getAllForms' : IDL.Func([], [IDL.Vec(CustomerForm)], ['query']),
+    'getAppSettings' : IDL.Func([], [AppSettings], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getFormById' : IDL.Func([IDL.Nat], [IDL.Opt(CustomerForm)], ['query']),
@@ -214,15 +261,19 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(CustomerForm)],
         ['query'],
       ),
+    'getSiteContent' : IDL.Func([], [SiteContent], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'getVisitorCount' : IDL.Func([], [IDL.Nat], ['query']),
-    'getVisitorStats' : IDL.Func([], [VisitorAnalytics], ['query']),
-    'healthCheck' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'listAllUserProfiles' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
+        ['query'],
+      ),
     'recordVisitor' : IDL.Func([], [], []),
     'resetAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
@@ -239,6 +290,9 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'updateAppSettings' : IDL.Func([AppSettings], [], []),
+    'updateSiteContent' : IDL.Func([SiteContent], [], []),
+    'updateUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
   });
 };
 

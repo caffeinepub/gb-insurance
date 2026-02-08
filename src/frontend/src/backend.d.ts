@@ -14,13 +14,17 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface VisitorAnalytics {
-    totalVisitors: bigint;
-    submissions: bigint;
-    pageViews: bigint;
-    uniqueVisitors: bigint;
+export interface AppSettings {
+    officeHours: string;
+    maintenanceMode: boolean;
+    contactEmail: string;
 }
 export type Time = bigint;
+export interface ServiceInfo {
+    title: string;
+    icon?: ExternalBlob;
+    description: string;
+}
 export interface CustomerForm {
     id: bigint;
     uploadedDocuments: Array<ExternalBlob>;
@@ -32,10 +36,25 @@ export interface CustomerForm {
     timestamp: Time;
     phone: string;
 }
+export interface SiteContent {
+    homeTitle: string;
+    heroText: string;
+    heroImage?: ExternalBlob;
+    generalInfo: string;
+    testimonials: Array<Testimonial>;
+    homeDescription: string;
+    services: Array<ServiceInfo>;
+}
 export interface UserProfile {
     name: string;
     role: string;
     email: string;
+}
+export interface Testimonial {
+    serviceUsed: string;
+    clientName: string;
+    feedback: string;
+    rating: bigint;
 }
 export enum InsuranceType {
     travel = "travel",
@@ -54,17 +73,21 @@ export interface backendInterface {
     adminLoginWithPassword(password: string): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAllForms(): Promise<Array<CustomerForm>>;
+    getAppSettings(): Promise<AppSettings>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getFormById(id: bigint): Promise<CustomerForm | null>;
     getFormsByInsuranceType(insuranceType: InsuranceType): Promise<Array<CustomerForm>>;
+    getSiteContent(): Promise<SiteContent>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisitorCount(): Promise<bigint>;
-    getVisitorStats(): Promise<VisitorAnalytics>;
-    healthCheck(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    listAllUserProfiles(): Promise<Array<[Principal, UserProfile]>>;
     recordVisitor(): Promise<void>;
     resetAdminPassword(resetCode: string, newPassword: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     submitForm(name: string, phone: string, email: string, address: string, interests: Array<InsuranceType>, feedback: string, documents: Array<ExternalBlob>): Promise<void>;
+    updateAppSettings(newSettings: AppSettings): Promise<void>;
+    updateSiteContent(newContent: SiteContent): Promise<void>;
+    updateUserProfile(user: Principal, profile: UserProfile): Promise<void>;
 }

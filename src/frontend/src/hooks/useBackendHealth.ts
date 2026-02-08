@@ -11,18 +11,18 @@ export interface UseBackendHealthResult {
 
 /**
  * Hook to check backend health and connectivity
- * Uses the healthCheck() endpoint which is anonymous and doesn't require admin token
+ * Uses a simple query call to verify backend is reachable
  */
 export function useBackendHealth(): UseBackendHealthResult {
   const query = useQuery<boolean, Error>({
     queryKey: ['backendHealth'],
     queryFn: async () => {
       try {
-        // Create an anonymous actor without admin token for health check
-        // This ensures health check works even when admin token is missing/invalid
+        // Create an anonymous actor to test connectivity
         const actor = await createActorWithConfig();
-        const result = await actor.healthCheck();
-        return result;
+        // Use getAppSettings as a simple health check (it's a public query)
+        await actor.getAppSettings();
+        return true;
       } catch (error) {
         console.error('Health check failed:', error);
         throw error;

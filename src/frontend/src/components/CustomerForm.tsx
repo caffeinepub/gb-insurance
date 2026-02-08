@@ -125,7 +125,16 @@ export default function CustomerForm() {
     }
 
     try {
-      await submitFormMutation.mutateAsync(formData);
+      // Map to backend expected format
+      await submitFormMutation.mutateAsync({
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        interests: formData.insuranceInterests,
+        feedback: formData.feedback,
+        documents: formData.documents,
+      });
       
       // Reset form
       setFormData({
@@ -401,7 +410,7 @@ export default function CustomerForm() {
                 ) : (
                   <>
                     <Send className="mr-2 h-6 w-6" />
-                    Submit Form
+                    Submit Application
                   </>
                 )}
               </Button>
@@ -412,4 +421,3 @@ export default function CustomerForm() {
     </section>
   );
 }
-

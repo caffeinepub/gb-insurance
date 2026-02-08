@@ -1,95 +1,79 @@
-import { Heart, Phone, Mail, MapPin, Shield } from 'lucide-react';
-import { useState } from 'react';
-import { BRANDING } from '@/constants/branding';
+import { useGetAppSettings } from '../hooks/useQueries';
+import { Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { BRANDING } from '../constants/branding';
 
 export default function Footer() {
-  const [logoError, setLogoError] = useState(false);
+  const { data: appSettings } = useGetAppSettings();
 
-  const handleLogoError = () => {
-    setLogoError(true);
-    console.warn('GB Insurance logo failed to load in footer, using fallback');
-  };
+  const contactEmail = appSettings?.contactEmail || 'info@iapl.com';
+  const officeHours = appSettings?.officeHours || '9 AM - 5 PM, Monday to Friday';
 
   return (
-    <footer className="bg-gradient-light text-foreground border-t-2 border-border relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,oklch(0.55_0.15_240_/_0.08),transparent_60%)]"></div>
-      
-      <div className="container mx-auto px-4 py-12 max-w-7xl relative z-10">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="animate-fade-in">
-            <div className="flex items-center gap-4 mb-6 transition-smooth hover:scale-105">
-              <div className="relative flex-shrink-0 h-[60px] w-[60px] sm:h-[70px] sm:w-[70px] md:h-[80px] md:w-[80px]">
-                {!logoError ? (
-                  <img 
-                    src={BRANDING.logo.main}
-                    alt={BRANDING.logo.alt}
-                    className="relative h-full w-full object-contain logo-enhanced"
-                    loading="lazy"
-                    onError={handleLogoError}
-                  />
-                ) : (
-                  <div className="relative h-full w-full bg-primary rounded-full flex items-center justify-center border-2 border-primary">
-                    <Shield className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary-foreground" />
-                  </div>
-                )}
-              </div>
+    <footer className="bg-gradient-light border-t-2 border-border">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid md:grid-cols-3 gap-12 mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <img
+                src={BRANDING.logo.main}
+                alt={BRANDING.logo.alt}
+                className="h-12 w-auto logo-enhanced"
+                onError={(e) => {
+                  console.error('Logo failed to load');
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
               <div>
-                <h3 className="font-bold text-foreground text-lg md:text-xl">{BRANDING.company.name}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground font-semibold">{BRANDING.company.tagline}</p>
+                <h3 className="text-lg font-bold text-foreground">{BRANDING.company.name}</h3>
+                <p className="text-xs text-muted-foreground font-medium">{BRANDING.company.tagline}</p>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground font-medium">
-              {BRANDING.company.description}
+            <p className="text-muted-foreground font-medium">
+              Your trusted partner for comprehensive insurance solutions. Protecting what matters most since 2009.
             </p>
           </div>
 
-          <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <h4 className="font-bold text-foreground mb-4 text-base">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#home" className="hover:text-primary transition-smooth-fast hover:translate-x-1 inline-block font-medium">Home</a></li>
-              <li><a href="#services" className="hover:text-primary transition-smooth-fast hover:translate-x-1 inline-block font-medium">Services</a></li>
-              <li><a href="#contact" className="hover:text-primary transition-smooth-fast hover:translate-x-1 inline-block font-medium">Contact</a></li>
-              <li><a href="#" className="hover:text-primary transition-smooth-fast hover:translate-x-1 inline-block font-medium">About Us</a></li>
-            </ul>
+          <div>
+            <h4 className="text-lg font-bold text-foreground mb-4">Contact Us</h4>
+            <div className="space-y-3">
+              <a
+                href={`mailto:${contactEmail}`}
+                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors font-medium"
+              >
+                <Mail className="h-5 w-5" />
+                {contactEmail}
+              </a>
+              <a
+                href="tel:+1234567890"
+                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors font-medium"
+              >
+                <Phone className="h-5 w-5" />
+                +1 (234) 567-890
+              </a>
+              <div className="flex items-start gap-3 text-muted-foreground font-medium">
+                <MapPin className="h-5 w-5 mt-1" />
+                <span>123 Insurance Street<br />Business District, City 12345</span>
+              </div>
+            </div>
           </div>
 
-          <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <h4 className="font-bold text-foreground mb-4 text-base">Services</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="transition-smooth-fast hover:text-primary hover:translate-x-1 font-medium">Life Insurance</li>
-              <li className="transition-smooth-fast hover:text-primary hover:translate-x-1 font-medium">Health Insurance</li>
-              <li className="transition-smooth-fast hover:text-primary hover:translate-x-1 font-medium">Vehicle Insurance</li>
-              <li className="transition-smooth-fast hover:text-primary hover:translate-x-1 font-medium">Property Insurance</li>
-            </ul>
-          </div>
-
-          <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <h4 className="font-bold text-foreground mb-4 text-base">Contact Us</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2 transition-smooth hover:text-primary hover:translate-x-1 font-medium">
-                <Phone className="h-4 w-4 text-secondary" />
-                <span>{BRANDING.contact.phone}</span>
-              </li>
-              <li className="flex items-center gap-2 transition-smooth hover:text-primary hover:translate-x-1 font-medium">
-                <Mail className="h-4 w-4 text-secondary" />
-                <span>{BRANDING.contact.email}</span>
-              </li>
-              <li className="flex items-start gap-2 transition-smooth hover:text-primary hover:translate-x-1 font-medium">
-                <MapPin className="h-4 w-4 text-secondary mt-0.5" />
-                <span>{BRANDING.contact.address}</span>
-              </li>
-            </ul>
+          <div>
+            <h4 className="text-lg font-bold text-foreground mb-4">Office Hours</h4>
+            <p className="text-muted-foreground font-medium mb-4">{officeHours}</p>
+            <p className="text-sm text-muted-foreground font-medium">
+              Emergency support available 24/7
+            </p>
           </div>
         </div>
 
-        <div className="border-t-2 border-border mt-8 pt-8 text-center text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '0.4s' }}>
-          <p className="flex items-center justify-center gap-1 flex-wrap font-medium">
-            © 2026. Built with <Heart className="h-4 w-4 text-secondary inline animate-bounce-subtle" /> using{' '}
-            <a 
-              href="https://caffeine.ai" 
-              target="_blank" 
+        <div className="border-t-2 border-border pt-8 text-center">
+          <p className="text-muted-foreground font-medium">
+            © 2026. Built with <Heart className="inline h-4 w-4 text-destructive" /> using{' '}
+            <a
+              href="https://caffeine.ai"
+              target="_blank"
               rel="noopener noreferrer"
-              className="text-secondary hover:underline transition-smooth-fast hover:scale-105 inline-block font-bold"
+              className="text-primary hover:text-primary/80 font-bold transition-colors"
             >
               caffeine.ai
             </a>

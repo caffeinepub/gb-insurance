@@ -1,9 +1,13 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useGetCallerUserProfile } from './hooks/useQueries';
 import HomePage from './pages/HomePage';
-import Dashboard from './pages/Dashboard';
 import AdminLoginPage from './pages/AdminLoginPage';
+import AdminDashboardLayout from './pages/admin/AdminDashboardLayout';
+import SubmissionsPage from './pages/admin/SubmissionsPage';
+import UsersPage from './pages/admin/UsersPage';
+import ContentPage from './pages/admin/ContentPage';
+import SettingsPage from './pages/admin/SettingsPage';
 import ProfileSetup from './components/ProfileSetup';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from 'next-themes';
@@ -87,13 +91,47 @@ const adminLoginRoute = createRoute({
   component: AdminLoginPage,
 });
 
+// Admin dashboard layout route with child routes
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dashboard',
-  component: Dashboard,
+  component: AdminDashboardLayout,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, adminLoginRoute, dashboardRoute]);
+const submissionsRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/',
+  component: SubmissionsPage,
+});
+
+const usersRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/users',
+  component: UsersPage,
+});
+
+const contentRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/content',
+  component: ContentPage,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  adminLoginRoute,
+  dashboardRoute.addChildren([
+    submissionsRoute,
+    usersRoute,
+    contentRoute,
+    settingsRoute,
+  ]),
+]);
 
 const router = createRouter({ routeTree });
 

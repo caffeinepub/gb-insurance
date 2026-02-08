@@ -1,74 +1,116 @@
-import { Shield, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { BRANDING } from '@/constants/branding';
+import { useGetAppSettings } from '../hooks/useQueries';
+import { Menu, X, Phone, Mail } from 'lucide-react';
+import { BRANDING } from '../constants/branding';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export default function Header() {
-  const navigate = useNavigate();
-  const [logoError, setLogoError] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: appSettings } = useGetAppSettings();
 
-  const handleAdminLogin = () => {
-    navigate({ to: '/admin-login' });
-  };
+  const maintenanceMode = appSettings?.maintenanceMode || false;
 
-  const handleLogoError = () => {
-    setLogoError(true);
-    console.warn('GB Insurance logo failed to load, using fallback');
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setMobileMenuOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b-2 border-border bg-background shadow-primary backdrop-blur-sm">
-      <div className="container mx-auto px-4 py-5 md:py-7 flex items-center justify-between max-w-7xl">
-        <div className="flex items-center gap-4 md:gap-6 transition-smooth hover:scale-105 cursor-pointer">
-          <div className="relative flex-shrink-0 h-[70px] w-[70px] sm:h-[90px] sm:w-[90px] md:h-[110px] md:w-[110px]">
-            {!logoError ? (
-              <img 
+    <>
+      {maintenanceMode && (
+        <Alert className="rounded-none border-x-0 border-t-0 border-b-2 border-warning bg-warning/10">
+          <AlertCircle className="h-5 w-5 text-warning" />
+          <AlertDescription className="text-warning font-semibold">
+            The site is currently in maintenance mode. Some features may be unavailable.
+          </AlertDescription>
+        </Alert>
+      )}
+      <header className="bg-card border-b-2 border-border shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
                 src={BRANDING.logo.main}
                 alt={BRANDING.logo.alt}
-                className="relative h-full w-full object-contain logo-enhanced"
-                loading="eager"
-                onError={handleLogoError}
+                className="h-12 w-auto logo-enhanced"
+                onError={(e) => {
+                  console.error('Logo failed to load');
+                  e.currentTarget.style.display = 'none';
+                }}
               />
-            ) : (
-              <div className="relative h-full w-full bg-primary rounded-full flex items-center justify-center border-2 border-primary">
-                <Shield className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 text-primary-foreground" />
+              <div>
+                <h1 className="text-xl font-bold text-foreground">{BRANDING.company.name}</h1>
+                <p className="text-xs text-muted-foreground font-medium">{BRANDING.company.tagline}</p>
               </div>
-            )}
+            </div>
+
+            <nav className="hidden md:flex items-center gap-8">
+              <button
+                onClick={() => scrollToSection('dashboard')}
+                className="text-foreground hover:text-primary font-semibold transition-colors"
+              >
+                dashboard
+              </button>
+              <a href="#services" className="text-foreground hover:text-primary font-semibold transition-colors">
+                Services
+              </a>
+              <a href="#contact" className="text-foreground hover:text-primary font-semibold transition-colors">
+                Contact
+              </a>
+              <a
+                href="tel:+1234567890"
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90 transition-smooth shadow-primary"
+              >
+                <Phone className="h-4 w-4" />
+                Call Now
+              </a>
+            </nav>
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-foreground hover:text-primary transition-colors"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-1 md:gap-2">
-              {BRANDING.company.name}
-              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-secondary animate-pulse" />
-            </h1>
-            <p className="text-xs sm:text-sm md:text-base text-muted-foreground font-semibold">{BRANDING.company.tagline}</p>
-          </div>
+
+          {mobileMenuOpen && (
+            <nav className="md:hidden mt-4 pt-4 border-t-2 border-border space-y-4 animate-slide-up">
+              <button
+                onClick={() => scrollToSection('dashboard')}
+                className="block w-full text-left text-foreground hover:text-primary font-semibold transition-colors"
+              >
+                dashboard
+              </button>
+              <a
+                href="#services"
+                className="block text-foreground hover:text-primary font-semibold transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Services
+              </a>
+              <a
+                href="#contact"
+                className="block text-foreground hover:text-primary font-semibold transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </a>
+              <a
+                href="tel:+1234567890"
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90 transition-smooth shadow-primary"
+              >
+                <Phone className="h-4 w-4" />
+                Call Now
+              </a>
+            </nav>
+          )}
         </div>
-
-        <nav className="hidden lg:flex items-center gap-8">
-          <a href="#home" className="text-sm font-bold text-foreground hover:text-primary transition-smooth-fast relative group py-2">
-            Home
-            <span className="absolute -bottom-1 left-0 w-0 h-1 bg-secondary transition-all duration-300 group-hover:w-full rounded-full"></span>
-          </a>
-          <a href="#services" className="text-sm font-bold text-foreground hover:text-primary transition-smooth-fast relative group py-2">
-            Services
-            <span className="absolute -bottom-1 left-0 w-0 h-1 bg-secondary transition-all duration-300 group-hover:w-full rounded-full"></span>
-          </a>
-          <a href="#contact" className="text-sm font-bold text-foreground hover:text-primary transition-smooth-fast relative group py-2">
-            Contact
-            <span className="absolute -bottom-1 left-0 w-0 h-1 bg-secondary transition-all duration-300 group-hover:w-full rounded-full"></span>
-          </a>
-        </nav>
-
-        <Button
-          onClick={handleAdminLogin}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-smooth shadow-primary hover-shadow-primary font-bold border-2 border-primary h-12 px-4 md:px-6 text-sm md:text-base"
-        >
-          <Shield className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-          <span className="hidden sm:inline">Admin Login</span>
-          <span className="sm:hidden">Admin</span>
-        </Button>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

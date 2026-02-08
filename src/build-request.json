@@ -1,111 +1,59 @@
 {
   "kind": "build_request",
-  "title": "Fix Reset Admin Credentials failure on live admin login/dashboard",
+  "title": "Display the dashboard directly on the homepage (publicly visible)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Make the “Reset Admin Credentials” flow work reliably on the deployed (live) site by ensuring the frontend can always create a working backend actor on the target network and does not fail due to missing/invalid admin token initialization.",
+      "text": "Render the existing dashboard content directly on the homepage and make it visible to all users without requiring Internet Identity authentication, while keeping the existing protected /dashboard route unchanged.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Reset Admin Credentials is not working",
-          "only on the deployed version"
+          "can't find the admin dashboard, place it in an obvious place",
+          "1. homepage 2. visible to all users 3. dashboard",
+          "2"
         ]
       },
       "acceptanceCriteria": [
-        "On the live deployment, opening the Admin Login page and clicking “Reset Admin Credentials” does not fail with a generic backend connection error when the backend canister is reachable.",
-        "If a secret admin token is missing/empty, actor initialization must still succeed and allow non-token operations (e.g., healthCheck, password reset) to be called; any token-related failure must be handled without breaking actor creation.",
-        "Any actor initialization error that prevents backend calls is surfaced to the user as a clear error state on the Admin Login page (in English), and the page provides a retry action."
+        "Visiting the root route (\"/\") shows a clearly labeled section titled \"dashboard\" on the homepage.",
+        "The dashboard section renders the same submissions dashboard UI currently shown under the protected dashboard area (the content from the submissions view: heading, stats, filters, and table).",
+        "The dashboard section renders without triggering the admin access gate (it must not show the AccessDeniedScreen for non-admin/non-authenticated users when viewed on the homepage).",
+        "The existing /dashboard route continues to require admin access as it does today (no change to AdminDashboardLayout access control)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Require an authenticated Internet Identity session before attempting to reset the admin password, and guide the user through authentication if they try to reset while unauthenticated.",
+      "text": "Add an in-page navigation affordance so the dashboard is easy to find from the top of the homepage (e.g., a \"dashboard\" link that scrolls to the dashboard section).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Reset Admin Credentials is not working",
-          "only on the deployed version"
+          "place it in an obvious place",
+          "1. homepage",
+          "3. dashboard"
         ]
       },
       "acceptanceCriteria": [
-        "If the user is not authenticated (anonymous principal), the reset action is blocked and the UI clearly instructs the user to sign in with Internet Identity first.",
-        "If the user clicks reset while unauthenticated, the UI offers (or triggers) Internet Identity login and only proceeds to call resetAdminPassword after authentication succeeds.",
-        "After a successful reset, the UI refreshes admin status and provides a success confirmation without redirect loops or blank states."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Improve error handling for the reset password call so that live-site failures (traps, unauthorized, timeouts, unreachable backend) are correctly categorized and displayed, avoiding “no response” and “wrong redirect” outcomes.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "rror message, no response, wrong redirect.",
-          "only on the deployed version"
-        ]
-      },
-      "acceptanceCriteria": [
-        "If resetAdminPassword traps (e.g., invalid reset code, password policy), the user sees the trap message (or a safe, human-readable mapped message) in the reset dialog instead of a silent failure.",
-        "If the backend is unreachable, the reset UI shows a dedicated connectivity error state and does not attempt admin-status redirect logic.",
-        "The page never redirects to /dashboard as a result of reset unless admin verification actually returns true; redirect behavior is consistent between local and deployed environments."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Harden the backend resetAdminPassword endpoint to prevent insecure or inconsistent behavior across environments by explicitly rejecting anonymous callers and returning consistent errors for invalid input.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Reset Admin Credentials is not working",
-          "only on the deployed version"
-        ]
-      },
-      "acceptanceCriteria": [
-        "resetAdminPassword rejects anonymous callers with a clear trap message (English) instructing the user to authenticate with Internet Identity first.",
-        "resetAdminPassword continues to validate reset code and minimum password length, and returns/throws consistent errors that the frontend can display.",
-        "Successful reset still clears failed login attempts and (when applicable) grants admin role to the authenticated caller."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add a focused regression check for the deployed scenario: verify that Admin Login, Reset Admin Credentials, and subsequent admin verification behave the same on local and deployed networks.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "only on the deployed version"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Document a short manual test checklist (steps + expected outcomes) covering: (1) authenticate with Internet Identity, (2) reset password with reset code, (3) login with password, (4) reach /dashboard, and (5) behavior when backend is unreachable.",
-        "The checklist includes how to confirm backend reachability via the existing healthCheck endpoint and what the UI should display for each health status."
+        "From the top of the homepage, there is a visible navigation element labeled \"dashboard\".",
+        "Activating the \"dashboard\" navigation element scrolls/jumps to the dashboard section on the homepage.",
+        "User-facing text for the label is exactly \"dashboard\" (lowercase), as requested."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; only add migration.mo if an upgrade/state migration is required.",
-    "Do not edit files under frontend/src/components/ui or any frontend immutable paths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx); compose around them instead.",
-    "Use English for all user-facing text."
+    "Do not edit files under frontend/src/components/ui (read-only).",
+    "Do not edit frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts (immutable paths).",
+    "Backend must remain single-actor (no new backend services/canisters)."
   ],
   "nonGoals": [
-    "Do not add third-party authentication providers (only Internet Identity is supported).",
-    "Do not introduce external databases or non-IC backend services.",
-    "Do not implement new admin features beyond fixing/resetting credentials and stabilizing the existing admin login/dashboard flow."
+    "Do not change backend schema or add new backend endpoints for this change.",
+    "Do not remove or weaken admin authentication/authorization for the existing /dashboard admin area.",
+    "Do not redesign unrelated homepage sections (Hero/Services/Contact/Form) beyond what is necessary to place the dashboard section."
   ],
   "imageRequirements": {
     "required": [],

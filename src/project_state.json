@@ -1,34 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Project includes an admin dashboard that should be placed prominently by displaying the dashboard directly on the homepage, visible to all users, labeled “dashboard.”",
   "architectural_notes": [],
-  "known_issues": [
-    "Admin login/dashboard issue on live site: 'Reset Admin Credentials' fails (error/no response/wrong redirect) but works in local development."
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-make-the-reset-admin-credentials-flow-work-reliably-on-the-deployed-live-site-by-ensuring-the-frontend-can-always-create-a-working-backend-actor-on-the-target-network-and-does-not-fail-due-to-missing-invalid-admin-token-initialization",
-      "title": "Make the “Reset Admin Credentials” flow work reliably on the deployed (live) site by ensuring the frontend can always create a working backend actor on the target network and does not fail due to missing/invalid admin token initialization.",
+      "id": "feature-render-the-existing-dashboard-content-directly-on-the-homepage-and-make-it-visible-to-all-users-without-requiring-internet-identity-authentication-while-keeping-the-existing-protected-dashboard-route-unchanged",
+      "title": "Render the existing dashboard content directly on the homepage and make it visible to all users without requiring Internet Identity authentication, while keeping the existing protected /dashboard route unchanged.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-require-an-authenticated-internet-identity-session-before-attempting-to-reset-the-admin-password-and-guide-the-user-through-authentication-if-they-try-to-reset-while-unauthenticated",
-      "title": "Require an authenticated Internet Identity session before attempting to reset the admin password, and guide the user through authentication if they try to reset while unauthenticated.",
+      "id": "feature-add-an-in-page-navigation-affordance-so-the-dashboard-is-easy-to-find-from-the-top-of-the-homepage-e-g-a-dashboard-link-that-scrolls-to-the-dashboard-section",
+      "title": "Add an in-page navigation affordance so the dashboard is easy to find from the top of the homepage (e.g., a \"dashboard\" link that scrolls to the dashboard section).",
       "reqIds": [
         "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-improve-error-handling-for-the-reset-password-call-so-that-live-site-failures-traps-unauthorized-timeouts-unreachable-backend-are-correctly-categorized-and-displayed-avoiding-no-response-and-wrong-redirect-outcomes",
-      "title": "Improve error handling for the reset password call so that live-site failures (traps, unauthorized, timeouts, unreachable backend) are correctly categorized and displayed, avoiding “no response” and “wrong redirect” outcomes.",
-      "reqIds": [
-        "REQ-3"
       ],
       "version": 1
     }
@@ -36,28 +26,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix 'Reset Admin Credentials' not working on live admin login/dashboard (errors/no response/wrong redirect; works locally)",
+      "summary": "Display the admin dashboard directly on the homepage (visible to all users) and label it “dashboard.”",
       "reqIds": [],
       "status": "in_progress"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Harden the backend resetAdminPassword endpoint to prevent insecure or inconsistent behavior across environments by explicitly rejecting anonymous callers and returning consistent errors for invalid input.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Add a focused regression check for the deployed scenario: verify that Admin Login, Reset Admin Credentials, and subsequent admin verification behave the same on local and deployed networks.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "status": "pending"
     }
   ],
-  "projectName": "Fix Reset Admin Credentials failure on live admin login/dashboard",
+  "projectName": "Display the dashboard directly on the homepage (publicly visible)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

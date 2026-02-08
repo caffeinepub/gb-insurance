@@ -1,15 +1,17 @@
 import Map "mo:core/Map";
 import Time "mo:core/Time";
-import Iter "mo:core/Iter";
 import Text "mo:core/Text";
+import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
+import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
-import Array "mo:core/Array";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
+
+
 
 actor {
   type InsuranceType = {
@@ -33,10 +35,39 @@ actor {
     uploadedDocuments : [Storage.ExternalBlob];
   };
 
+  type SiteContent = {
+    homeTitle : Text;
+    homeDescription : Text;
+    heroText : Text;
+    heroImage : ?Storage.ExternalBlob;
+    generalInfo : Text;
+    services : [ServiceInfo];
+    testimonials : [Testimonial];
+  };
+
+  type ServiceInfo = {
+    title : Text;
+    description : Text;
+    icon : ?Storage.ExternalBlob;
+  };
+
+  type Testimonial = {
+    clientName : Text;
+    feedback : Text;
+    serviceUsed : Text;
+    rating : Nat;
+  };
+
   type UserProfile = {
     name : Text;
     email : Text;
     role : Text;
+  };
+
+  type AppSettings = {
+    maintenanceMode : Bool;
+    contactEmail : Text;
+    officeHours : Text;
   };
 
   type VisitorAnalytics = {
@@ -51,7 +82,6 @@ actor {
   include MixinStorage();
 
   let customerForms = Map.empty<Nat, CustomerForm>();
-  var nextId = 0;
   var submissionsCount = 0;
 
   let userProfiles = Map.empty<Principal, UserProfile>();
@@ -68,15 +98,34 @@ actor {
   var failedAdminLoginAttempts = 0;
   let failedLoginThreshold = 3;
 
+  var siteContent : SiteContent = {
+    homeTitle = "Welcome to IA MDR Insurance Agency";
+    homeDescription = "Personalized insurance solutions for individuals and businesses.";
+    heroText = "Your peace of mind is our priority.";
+    heroImage = null;
+    generalInfo = "We offer a wide range of insurance policies tailored to your needs.";
+    services = [];
+    testimonials = [];
+  };
+
+  var appSettings : AppSettings = {
+    maintenanceMode = false;
+    contactEmail = "info@iapl.com";
+    officeHours = "9 AM - 5 PM, Monday to Friday";
+  };
+
   // ADMIN: Login with Password
   public shared ({ caller }) func adminLoginWithPassword(password : Text) : async Bool {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Anonymous principals cannot login as admin");
+    };
+
     if (failedAdminLoginAttempts >= failedLoginThreshold) {
       Runtime.trap("Too many failed login attempts. Please use the recovery process.");
     };
 
     if (Text.equal(password, adminPassword)) {
       failedAdminLoginAttempts := 0;
-      // Grant admin role to the caller after successful authentication
       AccessControl.assignRole(accessControlState, caller, caller, #admin);
       true;
     } else {
@@ -87,12 +136,10 @@ actor {
 
   // ADMIN: Reset Admin Password
   public shared ({ caller }) func resetAdminPassword(resetCode : Text, newPassword : Text) : async Bool {
-    // Explicitly reject anonymous callers for security and consistency across environments
-    if (caller.isAnonymous()) {
-      Runtime.trap("Unauthorized: Anonymous callers cannot reset admin password");
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only existing admins can reset the admin password");
     };
 
-    // Validate input parameters
     if (resetCode.size() == 0) {
       Runtime.trap("Invalid input: Reset code cannot be empty");
     };
@@ -101,27 +148,59 @@ actor {
       Runtime.trap("Invalid input: Password must be at least 8 characters long");
     };
 
-    // Check if caller is already an admin OR has the valid reset code
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     let hasValidResetCode = Text.equal(resetCode, "GB.INSURE.JAI.P.");
 
-    if (not isAdmin and not hasValidResetCode) {
+    if (not hasValidResetCode) {
       Runtime.trap("Unauthorized: Invalid reset code");
     };
 
-    // Update password and reset failed login attempts
     adminPassword := newPassword;
     failedAdminLoginAttempts := 0;
-
-    // Grant admin role to the caller if they used the reset code
-    if (not isAdmin and hasValidResetCode) {
-      AccessControl.assignRole(accessControlState, caller, caller, #admin);
-    };
 
     true;
   };
 
-  // PUBLIC: Form Submission - No authentication required for customer inquiries
+  // USER PROFILE: Get caller's own profile
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  // USER PROFILE: Save caller's own profile
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
+  // USER PROFILE: Get any user's profile (own or admin viewing others)
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller.notEqual(user) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  // ADMIN ONLY: List all user profiles
+  public query ({ caller }) func listAllUserProfiles() : async [(Principal, UserProfile)] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can list all user profiles");
+    };
+    userProfiles.toArray();
+  };
+
+  // ADMIN ONLY: Update user profile (admin-controlled fields)
+  public shared ({ caller }) func updateUserProfile(user : Principal, profile : UserProfile) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update user profiles");
+    };
+    userProfiles.add(user, profile);
+  };
+
+  // PUBLIC: Form Submission
   public shared ({ caller }) func submitForm(
     name : Text,
     phone : Text,
@@ -135,13 +214,12 @@ actor {
       Runtime.trap("Name, phone, and email are required");
     };
 
-    // Validate at least one insurance interest is selected
     if (interests.size() == 0) {
       Runtime.trap("At least one insurance interest must be selected");
     };
 
     let form : CustomerForm = {
-      id = nextId;
+      id = customerForms.size();
       name;
       phone;
       email;
@@ -152,27 +230,49 @@ actor {
       uploadedDocuments = documents;
     };
 
-    customerForms.add(nextId, form);
-    nextId += 1;
+    customerForms.add(customerForms.size(), form);
     submissionsCount += 1;
-    updateVisitorStats(submissionsCount);
   };
 
-  // PUBLIC: Visitor tracking - No authentication required
+  // PUBLIC: Visitor tracking
   public shared ({ caller }) func recordVisitor() : async () {
-    // Track unique visitors (including anonymous)
     if (visitorIdentifiers.get(caller) == null) {
       visitorIdentifiers.add(caller, true);
-      updateVisitorStats(visitorStats.submissions);
     };
-
-    // Increment page views
-    updateVisitorStats(visitorStats.submissions);
   };
 
-  // PUBLIC: Get visitor count - No authentication required for display
-  public query func getVisitorCount() : async Nat {
-    visitorStats.uniqueVisitors;
+  // PUBLIC: Get visitor count
+  public query ({ caller }) func getVisitorCount() : async Nat {
+    let totalVisitors = visitorIdentifiers.size();
+    totalVisitors;
+  };
+
+  // PUBLIC: Get site content
+  public query ({ caller }) func getSiteContent() : async SiteContent {
+    siteContent;
+  };
+
+  // PUBLIC: Get app settings
+  public query ({ caller }) func getAppSettings() : async AppSettings {
+    appSettings;
+  };
+
+  // ADMIN ONLY: Update site content
+  public shared ({ caller }) func updateSiteContent(newContent : SiteContent) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update site content");
+    };
+
+    siteContent := newContent;
+  };
+
+  // ADMIN ONLY: Update app settings
+  public shared ({ caller }) func updateAppSettings(newSettings : AppSettings) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update app settings");
+    };
+
+    appSettings := newSettings;
   };
 
   // ADMIN ONLY: Query all customer forms
@@ -183,14 +283,6 @@ actor {
     customerForms.values().toArray();
   };
 
-  // ADMIN ONLY: Get detailed visitor statistics
-  public query ({ caller }) func getVisitorStats() : async VisitorAnalytics {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can view visitor statistics");
-    };
-    visitorStats;
-  };
-
   // ADMIN ONLY: Get form by ID
   public query ({ caller }) func getFormById(id : Nat) : async ?CustomerForm {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
@@ -199,7 +291,7 @@ actor {
     customerForms.get(id);
   };
 
-  // ADMIN ONLY: Query all customer forms by insurance type
+  // ADMIN ONLY: Get forms by insurance type
   public query ({ caller }) func getFormsByInsuranceType(insuranceType : InsuranceType) : async [CustomerForm] {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can query by insurance interest");
@@ -214,76 +306,5 @@ actor {
     );
 
     filteredForms;
-  };
-
-  // USER: Get caller's own profile
-  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access profiles");
-    };
-    userProfiles.get(caller);
-  };
-
-  // USER OR ADMIN: Get user profile (users can view own, admins can view any)
-  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    let isViewingOwnProfile = (caller == user);
-    let isCallerAdmin = AccessControl.isAdmin(accessControlState, caller);
-
-    if (not isViewingOwnProfile and not isCallerAdmin) {
-      Runtime.trap("Unauthorized: Can only view your own profile unless you are an admin");
-    };
-
-    if (not isCallerAdmin and not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access profiles");
-    };
-
-    userProfiles.get(user);
-  };
-
-  // USER: Save caller's own profile
-  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can save profiles");
-    };
-
-    // Validate profile data
-    if (profile.name == "" or profile.email == "") {
-      Runtime.trap("Name and email are required for profile");
-    };
-
-    if (not containsAt(profile.email)) {
-      Runtime.trap("Invalid email format");
-    };
-
-    userProfiles.add(caller, profile);
-  };
-
-  // HEALTH CHECK: Anonymous backend status check
-  public query ({ caller }) func healthCheck() : async Bool {
-    true;
-  };
-
-  // Helper function for basic email validation
-  func containsAt(text : Text) : Bool {
-    for (char in text.chars()) {
-      if (char == '@') {
-        return true;
-      };
-    };
-    false;
-  };
-
-  // Helper function to update visitor statistics
-  func updateVisitorStats(submissions : Nat) {
-    let uniqueVisitorCount = visitorIdentifiers.toArray().size();
-    let totalVisitors = nextId; // Using nextId as total visitors count for simplicity
-
-    let newStats = {
-      totalVisitors;
-      uniqueVisitors = uniqueVisitorCount;
-      pageViews = uniqueVisitorCount;
-      submissions;
-    };
-    visitorStats := newStats;
   };
 };

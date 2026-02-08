@@ -1,70 +1,80 @@
-import { Shield, Users, Award, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useGetSiteContent } from '../hooks/useQueries';
+import { Loader2 } from 'lucide-react';
 
 export default function Hero() {
-  const [imageError, setImageError] = useState(false);
+  const { data: siteContent, isLoading } = useGetSiteContent();
+
+  const heroText = siteContent?.heroText || 'Your peace of mind is our priority.';
+  const heroImageUrl = siteContent?.heroImage?.getDirectURL();
+  const fallbackImageUrl = '/assets/generated/gb-hero-banner.dim_1600x900.png';
 
   return (
-    <section id="home" className="relative min-h-[600px] flex items-center justify-center overflow-hidden bg-gradient-light">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,oklch(0.55_0.15_240_/_0.12),transparent_50%)]"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,oklch(0.65_0.15_50_/_0.08),transparent_50%)]"></div>
-      
-      <div className="container mx-auto px-4 py-20 max-w-7xl relative z-10">
-        {/* Banner Image */}
-        {!imageError && (
-          <div className="mb-12 animate-fade-in">
-            <img 
-              src="/assets/generated/gb-hero-banner.dim_1600x900.png"
-              alt="GB Insurance - Comprehensive vehicle insurance coverage for cars, motorcycles, and commercial vehicles"
-              className="w-full max-w-5xl mx-auto rounded-2xl shadow-2xl border-4 border-primary/20 hover:border-primary/40 transition-all duration-300"
-              onError={() => setImageError(true)}
-              loading="eager"
-            />
+    <section className="relative bg-gradient-light py-20 px-4 overflow-hidden">
+      <div className="container mx-auto max-w-6xl">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6 animate-slide-up">
+            <h1 className="text-5xl md:text-6xl font-bold text-foreground leading-tight">
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  Loading...
+                </span>
+              ) : (
+                heroText
+              )}
+            </h1>
+            <p className="text-xl text-muted-foreground font-medium">
+              Comprehensive insurance solutions tailored to protect what matters most to you and your family.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-4">
+              <a
+                href="#contact"
+                className="px-8 py-4 bg-primary text-primary-foreground rounded-lg font-bold text-lg hover:bg-primary/90 transition-smooth shadow-primary hover-shadow-primary"
+              >
+                Get Started
+              </a>
+              <a
+                href="#services"
+                className="px-8 py-4 bg-secondary text-secondary-foreground rounded-lg font-bold text-lg hover:bg-secondary/90 transition-smooth shadow-secondary hover-shadow-secondary"
+              >
+                Our Services
+              </a>
+            </div>
           </div>
-        )}
 
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Your Trusted Insurance Partner
-          </h2>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Comprehensive insurance solutions tailored for Indian families. 
-            Protecting what matters most with reliable coverage and exceptional service.
-          </p>
+          <div className="relative animate-scale-in">
+            <div className="relative rounded-2xl overflow-hidden border-4 border-primary shadow-primary hover-shadow-primary transition-smooth hover-lift">
+              <img
+                src={heroImageUrl || fallbackImageUrl}
+                alt="GB Insurance Hero"
+                className="w-full h-auto object-cover"
+                onError={(e) => {
+                  if (e.currentTarget.src !== fallbackImageUrl) {
+                    e.currentTarget.src = fallbackImageUrl;
+                  }
+                }}
+              />
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary rounded-full opacity-20 blur-3xl"></div>
+            <div className="absolute -top-6 -left-6 w-32 h-32 bg-secondary rounded-full opacity-20 blur-3xl"></div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up">
-          <div className="bg-card border-2 border-border rounded-xl p-6 hover-lift hover-shadow-secondary transition-smooth group">
-            <div className="bg-primary/10 w-14 h-14 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-smooth">
-              <Shield className="h-7 w-7 text-primary" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 animate-fade-in">
+          {[
+            { label: 'Years Experience', value: '15+' },
+            { label: 'Happy Clients', value: '5000+' },
+            { label: 'Insurance Plans', value: '50+' },
+            { label: 'Claims Processed', value: '10K+' },
+          ].map((stat, index) => (
+            <div
+              key={index}
+              className="bg-card border-2 border-border rounded-xl p-6 text-center hover-lift shadow-light hover-shadow-light transition-smooth"
+            >
+              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</div>
+              <div className="text-sm text-muted-foreground font-semibold">{stat.label}</div>
             </div>
-            <h3 className="text-3xl font-bold text-foreground mb-2">50K+</h3>
-            <p className="text-sm text-muted-foreground font-medium">Policies Issued</p>
-          </div>
-
-          <div className="bg-card border-2 border-border rounded-xl p-6 hover-lift hover-shadow-secondary transition-smooth group">
-            <div className="bg-secondary/10 w-14 h-14 rounded-full flex items-center justify-center mb-4 group-hover:bg-secondary/20 transition-smooth">
-              <Users className="h-7 w-7 text-secondary" />
-            </div>
-            <h3 className="text-3xl font-bold text-foreground mb-2">45K+</h3>
-            <p className="text-sm text-muted-foreground font-medium">Happy Customers</p>
-          </div>
-
-          <div className="bg-card border-2 border-border rounded-xl p-6 hover-lift hover-shadow-accent transition-smooth group">
-            <div className="bg-accent/10 w-14 h-14 rounded-full flex items-center justify-center mb-4 group-hover:bg-accent/20 transition-smooth">
-              <Award className="h-7 w-7 text-accent" />
-            </div>
-            <h3 className="text-3xl font-bold text-foreground mb-2">15+</h3>
-            <p className="text-sm text-muted-foreground font-medium">Years Experience</p>
-          </div>
-
-          <div className="bg-card border-2 border-border rounded-xl p-6 hover-lift hover-shadow-primary transition-smooth group">
-            <div className="bg-primary/10 w-14 h-14 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-smooth">
-              <TrendingUp className="h-7 w-7 text-primary" />
-            </div>
-            <h3 className="text-3xl font-bold text-foreground mb-2">98%</h3>
-            <p className="text-sm text-muted-foreground font-medium">Claim Settlement</p>
-          </div>
+          ))}
         </div>
       </div>
     </section>
