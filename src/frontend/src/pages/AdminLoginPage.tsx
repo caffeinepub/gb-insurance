@@ -1,138 +1,135 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useIsPrimaryAdmin, useAdminLoginWithPassword } from '../hooks/useQueries';
+import { useIsPrimaryAdmin, useCreateFirstAdmin } from '../hooks/useQueries';
 import { useBackendHealth } from '../hooks/useBackendHealth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Shield, CheckCircle2, Loader2, ArrowLeft, AlertCircle, RefreshCw, WifiOff, Wifi } from 'lucide-react';
+import { Shield, CheckCircle2, Loader2, ArrowLeft, AlertCircle, RefreshCw, UserPlus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { getSessionParameter, clearSessionParameter } from '../utils/urlParams';
 
-type AuthStep = 'idle' | 'authenticating' | 'verifying' | 'success' | 'error';
+type AuthStep = 'idle' | 'authenticating' | 'verifying' | 'success' | 'unauthorized' | 'error' | 'creating-admin';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { identity, login, loginStatus, isInitializing } = useInternetIdentity();
-  const { refetch: refetchAdminStatus } = useIsPrimaryAdmin();
-  const { status: healthStatus, isChecking: healthChecking, refetch: refetchHealth } = useBackendHealth();
+  const { data: isAdmin, refetch: refetchAdminStatus, error: adminCheckError } = useIsPrimaryAdmin();
+  const { status: healthStatus, refetch: refetchHealth } = useBackendHealth();
+  const createFirstAdminMutation = useCreateFirstAdmin();
   
   const [authStep, setAuthStep] = useState<AuthStep>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [password, setPassword] = useState('');
-  const [credentialError, setCredentialError] = useState<string | null>(null);
-
-  const adminLoginMutation = useAdminLoginWithPassword();
-
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
 
+  // Check for admin init errors on mount
   useEffect(() => {
     const adminInitError = getSessionParameter('adminInitError');
-    if (adminInitError && !errorMessage) {
+    if (adminInitError) {
       setErrorMessage(adminInitError);
       setAuthStep('error');
     }
-  }, [errorMessage]);
+  }, []);
 
-  const checkAdminStatusAndRedirect = useCallback(async () => {
-    if (authStep !== 'idle') return;
-
-    setAuthStep('verifying');
-    try {
-      const { data: isAdmin } = await refetchAdminStatus();
-      if (isAdmin) {
-        setAuthStep('success');
-        clearSessionParameter('adminInitError');
-        setTimeout(() => {
-          navigate({ to: '/dashboard' });
-        }, 1500);
-      } else {
-        setAuthStep('idle');
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setAuthStep('idle');
-    }
-  }, [refetchAdminStatus, navigate, authStep]);
-
+  // Auto-verify and redirect when authenticated
   useEffect(() => {
-    if (isAuthenticated && authStep === 'idle') {
-      checkAdminStatusAndRedirect();
+    if (!isAuthenticated || authStep === 'success' || authStep === 'unauthorized' || authStep === 'creating-admin') {
+      return;
     }
-  }, [isAuthenticated, authStep, checkAdminStatusAndRedirect]);
+
+    const verifyAndRedirect = async () => {
+      if (authStep !== 'idle' && authStep !== 'verifying') {
+        return;
+      }
+
+      setAuthStep('verifying');
+      setErrorMessage(null);
+
+      try {
+        const { data: adminStatus } = await refetchAdminStatus();
+        
+        if (adminStatus === true) {
+          setAuthStep('success');
+          clearSessionParameter('adminInitError');
+          setTimeout(() => {
+            navigate({ to: '/dashboard' });
+          }, 1000);
+        } else {
+          setAuthStep('unauthorized');
+          setErrorMessage('You are not authorized as an admin. You can create the first admin if none exists.');
+        }
+      } catch (error: any) {
+        console.error('Admin verification failed:', error);
+        setAuthStep('error');
+        setErrorMessage(error.message || 'Failed to verify admin status. Please try again.');
+      }
+    };
+
+    verifyAndRedirect();
+  }, [isAuthenticated, authStep, refetchAdminStatus, navigate]);
 
   const handleLoginWithII = async () => {
+    if (isAuthenticated) {
+      // Already authenticated, just verify
+      setAuthStep('idle');
+      return;
+    }
+
     setErrorMessage(null);
     clearSessionParameter('adminInitError');
+    setAuthStep('authenticating');
 
     try {
-      setAuthStep('authenticating');
       await login();
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setAuthStep('verifying');
-      const { data: isAdmin } = await refetchAdminStatus();
-
-      if (isAdmin) {
-        setAuthStep('success');
-        clearSessionParameter('adminInitError');
-        setTimeout(() => {
-          navigate({ to: '/dashboard' });
-        }, 1500);
-      } else {
-        setAuthStep('idle');
-      }
+      // After successful login, the useEffect will handle verification
     } catch (error: any) {
-      console.error('Login flow error:', error);
-      const message = error.message || 'Login failed. Please check your connection and try again.';
-      setErrorMessage(message);
+      console.error('Internet Identity login failed:', error);
       setAuthStep('error');
+      
+      if (error.message?.includes('popup') || error.message?.includes('blocked')) {
+        setErrorMessage('Login popup was blocked. Please allow popups for this site and try again.');
+      } else if (error.message?.includes('User is already authenticated')) {
+        setErrorMessage('You are already logged in. Refreshing...');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setErrorMessage(error.message || 'Internet Identity login failed. Please try again.');
+      }
     }
   };
 
-  const handleCredentialLogin = async () => {
-    setCredentialError(null);
-
-    if (!password.trim()) {
-      setCredentialError('Password is required');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      setCredentialError('Please authenticate with Internet Identity first');
-      return;
-    }
+  const handleCreateFirstAdmin = async () => {
+    setAuthStep('creating-admin');
+    setErrorMessage(null);
 
     try {
-      await adminLoginMutation.mutateAsync(password);
-
-      setAuthStep('verifying');
-      const { data: isAdmin } = await refetchAdminStatus();
-
-      if (isAdmin) {
+      await createFirstAdminMutation.mutateAsync();
+      
+      // Re-check admin status
+      const { data: adminStatus } = await refetchAdminStatus();
+      
+      if (adminStatus === true) {
         setAuthStep('success');
         clearSessionParameter('adminInitError');
         setTimeout(() => {
           navigate({ to: '/dashboard' });
-        }, 1500);
+        }, 1000);
       } else {
-        setCredentialError('Login succeeded but admin status could not be verified. Please try again.');
-        setAuthStep('idle');
+        setAuthStep('error');
+        setErrorMessage('Admin creation succeeded but verification failed. An admin may already exist.');
       }
     } catch (error: any) {
-      console.error('Credential login error:', error);
-      const message = error.message || 'Incorrect password';
-      setCredentialError(message);
+      console.error('Failed to create first admin:', error);
+      setAuthStep('error');
+      
+      if (error.message?.includes('already')) {
+        setErrorMessage('An admin already exists. Please contact the system administrator.');
+      } else {
+        setErrorMessage(error.message || 'Failed to create first admin. Please try again.');
+      }
     }
-  };
-
-  const handleBackToHome = () => {
-    navigate({ to: '/' });
   };
 
   const handleRetry = () => {
@@ -141,14 +138,18 @@ export default function AdminLoginPage() {
     clearSessionParameter('adminInitError');
   };
 
+  const handleBackToHome = () => {
+    navigate({ to: '/' });
+  };
+
   if (isInitializing) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center bg-background">
           <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-foreground font-medium">Initializing...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <p className="text-muted-foreground">Initializing...</p>
           </div>
         </main>
         <Footer />
@@ -162,209 +163,155 @@ export default function AdminLoginPage() {
         return 'Connecting to Internet Identity...';
       case 'verifying':
         return 'Verifying admin status...';
+      case 'creating-admin':
+        return 'Creating first admin...';
       case 'success':
-        return 'Authentication successful!';
+        return 'Authentication successful! Redirecting...';
       default:
         return '';
     }
   };
 
-  const isProcessing = ['authenticating', 'verifying'].includes(authStep);
+  const isProcessing = ['authenticating', 'verifying', 'creating-admin'].includes(authStep);
+  const showLoginButton = !isAuthenticated && authStep !== 'success';
+  const showUnauthorizedMessage = authStep === 'unauthorized';
+  const showErrorState = authStep === 'error';
+  const showCreateFirstAdmin = isAuthenticated && showUnauthorizedMessage;
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-lg w-full shadow-2xl border-2 border-border bg-card">
-          {authStep === 'success' ? (
-            <>
-              <CardHeader className="text-center space-y-4 border-b-2 border-border bg-muted">
-                <div className="mx-auto w-24 h-24 rounded-full bg-primary flex items-center justify-center border-2 border-primary shadow-primary">
-                  <CheckCircle2 className="h-12 w-12 text-primary-foreground" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold text-foreground">Authentication Successful!</CardTitle>
-                  <CardDescription className="mt-2 font-medium text-foreground">
-                    Welcome, Administrator! Redirecting to dashboard...
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="text-center py-8">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-              </CardContent>
-            </>
-          ) : (
-            <>
-              <CardHeader className="text-center space-y-4 border-b-2 border-border bg-muted">
-                <div className="mx-auto w-20 h-20 rounded-full bg-primary flex items-center justify-center border-2 border-primary shadow-primary">
-                  <Shield className="h-10 w-10 text-primary-foreground" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold text-foreground">Admin Login</CardTitle>
-                  <CardDescription className="mt-2 font-medium text-foreground">
-                    Secure access to the dashboard
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-6">
-                {/* Backend connectivity indicator */}
-                <div
-                  className={`rounded-lg p-4 border-2 flex items-center gap-3 ${
-                    healthStatus === 'ok'
-                      ? 'bg-green-50 border-green-500'
-                      : 'bg-red-50 border-red-500'
-                  }`}
+      <main className="flex-1 flex items-center justify-center p-4 bg-muted/30">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Admin Login</CardTitle>
+            <CardDescription>
+              Secure access to the admin dashboard
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            {/* Error Display */}
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success State */}
+            {authStep === 'success' && (
+              <Alert className="border-success bg-success/10">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <AlertDescription className="text-success">
+                  {getStepMessage()}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Processing State */}
+            {isProcessing && authStep !== 'success' && (
+              <div className="flex items-center justify-center gap-3 p-4 bg-muted rounded-lg">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">{getStepMessage()}</p>
+              </div>
+            )}
+
+            {/* Login Button */}
+            {showLoginButton && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">
+                  Authenticate with your Internet Identity to access the admin area
+                </p>
+                <Button
+                  onClick={handleLoginWithII}
+                  disabled={isProcessing || healthStatus !== 'ok'}
+                  className="w-full"
+                  size="lg"
                 >
-                  {healthStatus === 'ok' ? (
-                    <Wifi className="h-5 w-5 text-green-600" />
+                  {loginStatus === 'logging-in' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
                   ) : (
-                    <WifiOff className="h-5 w-5 text-red-600" />
+                    <>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Login with Internet Identity
+                    </>
                   )}
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm font-bold ${
-                        healthStatus === 'ok' ? 'text-green-900' : 'text-red-900'
-                      }`}
-                    >
-                      {healthStatus === 'ok' ? 'Backend Connected' : 'Backend Disconnected'}
-                    </p>
-                    <p
-                      className={`text-xs ${
-                        healthStatus === 'ok' ? 'text-green-700' : 'text-red-700'
-                      }`}
-                    >
-                      {healthStatus === 'ok'
-                        ? 'Backend is reachable and ready'
-                        : 'Unable to reach backend. Check your connection.'}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => refetchHealth()}
-                    variant="ghost"
-                    size="sm"
-                    disabled={healthChecking}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${healthChecking ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
+                </Button>
+              </div>
+            )}
 
-                {isProcessing && (
-                  <div className="bg-primary/10 border-2 border-primary rounded-lg p-4 flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <p className="text-sm font-semibold text-foreground">{getStepMessage()}</p>
-                  </div>
-                )}
+            {/* Unauthorized Message with Create First Admin Option */}
+            {showUnauthorizedMessage && (
+              <div className="space-y-3">
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    You are not authorized as an admin. Please contact the system administrator.
+                  </AlertDescription>
+                </Alert>
 
-                {authStep === 'error' && errorMessage && (
-                  <Alert className="border-2 border-destructive bg-destructive/10">
-                    <AlertCircle className="h-5 w-5 text-destructive" />
-                    <AlertDescription className="text-destructive font-semibold">
-                      {errorMessage}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {!isAuthenticated ? (
-                  <div className="space-y-4">
-                    <div className="bg-muted rounded-lg p-5 space-y-3 border-2 border-border">
-                      <h3 className="font-bold text-sm text-foreground">Internet Identity Required</h3>
-                      <p className="text-sm text-foreground font-medium">
-                        To access the admin dashboard, you need to authenticate using Internet Identity.
-                      </p>
+                {showCreateFirstAdmin && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                          Or
+                        </span>
+                      </div>
                     </div>
 
                     <Button
-                      onClick={handleLoginWithII}
-                      disabled={isProcessing || healthStatus !== 'ok'}
-                      className="w-full h-12 text-base font-semibold"
+                      onClick={handleCreateFirstAdmin}
+                      disabled={isProcessing}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
                     >
-                      {loginStatus === 'logging-in' ? (
-                        <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                          Connecting...
-                        </>
-                      ) : (
-                        <>
-                          <Shield className="h-5 w-5 mr-2" />
-                          Login with Internet Identity
-                        </>
-                      )}
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create First Admin
                     </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Alert className="border-2 border-primary bg-primary/10">
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                      <AlertDescription className="text-foreground font-semibold">
-                        Authenticated with Internet Identity
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="bg-muted rounded-lg p-5 space-y-4 border-2 border-border">
-                      <h3 className="font-bold text-sm text-foreground">Master Admin Credentials</h3>
-                      <p className="text-sm text-foreground font-medium">
-                        Enter the master admin password to gain admin access.
-                      </p>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="password" className="text-foreground font-semibold">
-                          Password
-                        </Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleCredentialLogin()}
-                          placeholder="Enter admin password"
-                          className="border-2"
-                          disabled={adminLoginMutation.isPending}
-                        />
-                      </div>
-
-                      {credentialError && (
-                        <Alert className="border-2 border-destructive bg-destructive/10">
-                          <AlertCircle className="h-4 w-4 text-destructive" />
-                          <AlertDescription className="text-destructive text-sm font-semibold">
-                            {credentialError}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      <Button
-                        onClick={handleCredentialLogin}
-                        disabled={adminLoginMutation.isPending || !password.trim()}
-                        className="w-full h-11 font-semibold"
-                      >
-                        {adminLoginMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            Logging in...
-                          </>
-                        ) : (
-                          'Login as Admin'
-                        )}
-                      </Button>
-                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      If no admin exists yet, you can create the first admin account
+                    </p>
                   </div>
                 )}
+              </div>
+            )}
 
-                {authStep === 'error' && (
-                  <Button onClick={handleRetry} variant="outline" className="w-full">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Try Again
-                  </Button>
-                )}
+            {/* Retry Button */}
+            {showErrorState && (
+              <Button
+                onClick={handleRetry}
+                variant="default"
+                className="w-full"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            )}
 
-                <Button onClick={handleBackToHome} variant="ghost" className="w-full">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Home
-                </Button>
-              </CardContent>
-            </>
-          )}
+            {/* Back to Home */}
+            <Button
+              onClick={handleBackToHome}
+              variant="outline"
+              className="w-full"
+              disabled={isProcessing}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Homepage
+            </Button>
+          </CardContent>
         </Card>
       </main>
 

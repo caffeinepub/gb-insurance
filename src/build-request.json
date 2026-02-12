@@ -1,62 +1,118 @@
 {
   "kind": "build_request",
-  "title": "Display the dashboard directly on the homepage (publicly visible)",
-  "priority": "normal",
+  "title": "Add dedicated admin-creation flow and in-app admin management to fix 'not authorized' admin login",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Render the existing dashboard content directly on the homepage and make it visible to all users without requiring Internet Identity authentication, while keeping the existing protected /dashboard route unchanged.",
-      "target": "frontend",
+      "text": "Add a backend method to allow any authenticated caller to create the first admin when no admins currently exist, and make the method safe to call repeatedly (idempotent). This should resolve cases where admin login shows 'You are not authorized as an admin' after canister rebuild/reset.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4",
+          "msg-8",
+          "msg-10"
         ],
         "quotes": [
-          "can't find the admin dashboard, place it in an obvious place",
-          "1. homepage 2. visible to all users 3. dashboard",
-          "2"
+          "You are not authorized as an admin. Please contact the system administrator, admin login is showing this error fix this in one go",
+          "option 2",
+          "1. anyone"
         ]
       },
       "acceptanceCriteria": [
-        "Visiting the root route (\"/\") shows a clearly labeled section titled \"dashboard\" on the homepage.",
-        "The dashboard section renders the same submissions dashboard UI currently shown under the protected dashboard area (the content from the submissions view: heading, stats, filters, and table).",
-        "The dashboard section renders without triggering the admin access gate (it must not show the AccessDeniedScreen for non-admin/non-authenticated users when viewed on the homepage).",
-        "The existing /dashboard route continues to require admin access as it does today (no change to AdminDashboardLayout access control)."
+        "When there are zero admins configured, an authenticated caller can invoke the new method and becomes an admin.",
+        "When at least one admin already exists, calling the method does not change admin state (and returns a clear error or a no-op result).",
+        "Calling the method multiple times by the same caller does not create duplicates and does not error unexpectedly.",
+        "After successful first-admin creation, subsequent calls to existing admin-gated endpoints (e.g., getAllForms) succeed for that caller."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add an in-page navigation affordance so the dashboard is easy to find from the top of the homepage (e.g., a \"dashboard\" link that scrolls to the dashboard section).",
-      "target": "frontend",
+      "text": "Implement backend support for admin management: allow admins to list current admins and add/remove other admins from within the app.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-10"
         ],
         "quotes": [
-          "place it in an obvious place",
-          "1. homepage",
-          "3. dashboard"
+          "3. yes"
         ]
       },
       "acceptanceCriteria": [
-        "From the top of the homepage, there is a visible navigation element labeled \"dashboard\".",
-        "Activating the \"dashboard\" navigation element scrolls/jumps to the dashboard section on the homepage.",
-        "User-facing text for the label is exactly \"dashboard\" (lowercase), as requested."
+        "Only an admin can list admins.",
+        "Only an admin can add another admin principal.",
+        "Only an admin can remove an admin principal.",
+        "Attempting these actions as a non-admin traps/returns an authorization error.",
+        "The backend prevents removal of the last remaining admin (or otherwise enforces a safe rule to avoid locking the system)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update the admin login UX (/admin-login) to include a dedicated 'Create first admin' flow: if the user is authenticated but not an admin, provide an action to create the first admin (only succeeds if no admins exist) and then re-check admin status and redirect to /dashboard on success.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4",
+          "msg-8",
+          "msg-10"
+        ],
+        "quotes": [
+          "admin login is showing this error fix this in one go",
+          "option 2",
+          "admin creation flow should exist"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On /admin-login, when Internet Identity authentication succeeds but admin check is false, the page shows a clear next step to create the first admin (in addition to the current unauthorized messaging).",
+        "Clicking the action calls the backend first-admin creation method and shows loading/error/success states in English.",
+        "On success, the page re-fetches admin status and redirects to /dashboard.",
+        "If an admin already exists, the UI clearly indicates that first-admin creation is not available (and does not misleadingly claim success)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add an Admin Management page in the admin dashboard that allows existing admins to view the current admin list and add/remove admins from the UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-10"
+        ],
+        "quotes": [
+          "3. yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A new admin-only page is reachable from within the /dashboard area (add a route under the existing AdminDashboardLayout in frontend/src/App.tsx).",
+        "The page displays the current admin list returned by the backend.",
+        "The page provides controls to add an admin by entering a Principal text and submitting.",
+        "The page provides controls to remove an admin from the list, with a confirmation step.",
+        "All user-facing text is in English.",
+        "Non-admin users cannot access the page (they see the existing access denied handling)."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (read-only).",
-    "Do not edit frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts (immutable paths).",
-    "Backend must remain single-actor (no new backend services/canisters)."
+    "Backend must remain a single Motoko actor in backend/main.mo.",
+    "Do not edit files under frontend/src/components/ui or any other immutable paths listed in SYSTEM_CONTEXT.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not change backend schema or add new backend endpoints for this change.",
-    "Do not remove or weaken admin authentication/authorization for the existing /dashboard admin area.",
-    "Do not redesign unrelated homepage sections (Hero/Services/Contact/Form) beyond what is necessary to place the dashboard section."
+    "Implement third-party authentication providers (only Internet Identity).",
+    "Add real-time features (WebSockets/chat).",
+    "Introduce external databases or non-Motoko backend services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

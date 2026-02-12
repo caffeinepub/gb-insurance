@@ -1,55 +1,81 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T20:21:24.527Z",
+  "generatedAt": "2026-02-11T18:29:10.190Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
+    "total": 4,
     "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Render the existing dashboard content directly on the homepage and make it visible to all users without requiring Internet Identity authentication, while keeping the existing protected /dashboard route unchanged.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/PublicSubmissionsDashboardSection.tsx",
-          "frontend/src/pages/admin/SubmissionsPage.tsx",
-          "frontend/src/pages/HomePage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/PublicSubmissionsDashboardSection.tsx",
-          "frontend/src/pages/admin/SubmissionsPage.tsx",
-          "frontend/src/pages/HomePage.tsx"
-        ]
+        "summary": "Add a backend method to allow any authenticated caller to create the first admin when no admins currently exist, and make the method safe to call repeatedly (idempotent). This should resolve cases where admin login shows 'You are not authorized as an admin' after canister rebuild/reset.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Add an in-page navigation affordance so the dashboard is easy to find from the top of the homepage (e.g., a \"dashboard\" link that scrolls to the dashboard section).",
+        "summary": "Implement backend support for admin management: allow admins to list current admins and add/remove other admins from within the app.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Update the admin login UX (/admin-login) to include a dedicated 'Create first admin' flow: if the user is authenticated but not an admin, provide an action to create the first admin (only succeeds if no admins exist) and then re-check admin status and redirect to /dashboard on success.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Header.tsx",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/AdminLoginPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/Header.tsx",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/AdminLoginPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add an Admin Management page in the admin dashboard that allows existing admins to view the current admin list and add/remove admins from the UI.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/utils/principal.ts",
+          "frontend/src/pages/admin/AdminManagementPage.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/DashboardHeader.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/utils/principal.ts",
+          "frontend/src/pages/admin/AdminManagementPage.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/DashboardHeader.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/Header.tsx",
-    "frontend/src/components/PublicSubmissionsDashboardSection.tsx",
-    "frontend/src/components/SubmissionsDashboard.tsx",
-    "frontend/src/pages/HomePage.tsx",
-    "frontend/src/pages/admin/SubmissionsPage.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/DashboardHeader.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "frontend/src/pages/admin/AdminManagementPage.tsx",
+    "frontend/src/utils/principal.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

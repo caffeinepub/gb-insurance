@@ -2,8 +2,8 @@ import Header from '../components/Header';
 import Hero from '../components/Hero';
 import SupportSection from '../components/SupportSection';
 import Services from '../components/Services';
+import GetFreeQuoteCtaSection from '../components/GetFreeQuoteCtaSection';
 import CustomerForm from '../components/CustomerForm';
-import PublicSubmissionsDashboardSection from '../components/PublicSubmissionsDashboardSection';
 import Footer from '../components/Footer';
 
 export default function HomePage() {
@@ -14,7 +14,7 @@ export default function HomePage() {
         <Hero />
         <SupportSection />
         <Services />
-        <PublicSubmissionsDashboardSection />
+        <GetFreeQuoteCtaSection />
         <CustomerForm />
       </main>
       <Footer />

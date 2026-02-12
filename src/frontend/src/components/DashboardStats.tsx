@@ -1,6 +1,6 @@
+import { CustomerForm } from '../backend';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, FileText, TrendingUp, Clock } from 'lucide-react';
-import type { CustomerForm } from '../backend';
+import { Users, Calendar, TrendingUp } from 'lucide-react';
 
 interface DashboardStatsProps {
   forms: CustomerForm[];
@@ -8,83 +8,74 @@ interface DashboardStatsProps {
 
 export default function DashboardStats({ forms }: DashboardStatsProps) {
   const totalSubmissions = forms.length;
-  
+
+  // Calculate today's submissions
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todaySubmissions = forms.filter(form => {
-    const formDate = new Date(Number(form.timestamp) / 1000000);
-    formDate.setHours(0, 0, 0, 0);
-    return formDate.getTime() === today.getTime();
-  }).length;
+  const todayTimestamp = BigInt(today.getTime() * 1_000_000);
+  
+  const todaySubmissions = forms.filter(
+    (form) => form.timestamp >= todayTimestamp
+  ).length;
 
-  const insuranceTypeCounts: Record<string, number> = {};
-  forms.forEach(form => {
-    form.insuranceInterests.forEach(interest => {
-      insuranceTypeCounts[interest] = (insuranceTypeCounts[interest] || 0) + 1;
-    });
-  });
-
-  const mostPopular = Object.entries(insuranceTypeCounts).sort((a, b) => b[1] - a[1])[0];
-  const mostPopularType = mostPopular ? mostPopular[0] : 'N/A';
-
-  const last7Days = new Date();
-  last7Days.setDate(last7Days.getDate() - 7);
-  const recentSubmissions = forms.filter(form => {
-    const formDate = new Date(Number(form.timestamp) / 1000000);
-    return formDate >= last7Days;
-  }).length;
+  // Calculate last 7 days submissions
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const sevenDaysTimestamp = BigInt(sevenDaysAgo.getTime() * 1_000_000);
+  
+  const last7DaysSubmissions = forms.filter(
+    (form) => form.timestamp >= sevenDaysTimestamp
+  ).length;
 
   const stats = [
     {
       title: 'Total Submissions',
       value: totalSubmissions,
-      icon: FileText,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      icon: Users,
+      description: 'All time',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
     },
     {
-      title: 'Today',
+      title: "Today's Submissions",
       value: todaySubmissions,
-      icon: Clock,
-      color: 'text-accent',
-      bgColor: 'bg-accent/10',
+      icon: Calendar,
+      description: 'Last 24 hours',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
     },
     {
       title: 'Last 7 Days',
-      value: recentSubmissions,
+      value: last7DaysSubmissions,
       icon: TrendingUp,
-      color: 'text-secondary',
-      bgColor: 'bg-secondary/20',
-    },
-    {
-      title: 'Most Popular',
-      value: mostPopularType.charAt(0).toUpperCase() + mostPopularType.slice(1),
-      icon: Users,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      description: 'Weekly submissions',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat, index) => {
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {stats.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card 
-            key={index} 
-            className="border-2 border-primary/20 transition-smooth hover:shadow-gold hover:-translate-y-1 animate-scale-in bg-card"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
+          <Card key={stat.title} className="border-2 border-primary/20 shadow-light hover:shadow-gold transition-smooth bg-white">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold text-foreground">
+              <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wide">
                 {stat.title}
               </CardTitle>
-              <div className={`h-12 w-12 rounded-xl ${stat.bgColor} flex items-center justify-center transition-smooth hover:scale-110 border-2 border-primary/30 shadow-light`}>
-                <Icon className={`h-6 w-6 ${stat.color}`} />
+              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                <Icon className={`h-5 w-5 ${stat.color}`} />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{stat.value}</div>
+              <div className="text-3xl font-bold text-foreground mb-1">
+                {stat.value}
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">
+                {stat.description}
+              </p>
             </CardContent>
           </Card>
         );
@@ -92,4 +83,3 @@ export default function DashboardStats({ forms }: DashboardStatsProps) {
     </div>
   );
 }
-

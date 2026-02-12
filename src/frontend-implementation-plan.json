@@ -1,53 +1,71 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Public homepage dashboard section with in-page navigation",
+  "title": "Frontend: First-admin creation UX and in-app admin management screens",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Render the submissions dashboard UI on the public homepage without triggering the admin access gate, while keeping the protected /dashboard route unchanged.",
+      "id": "REQ-3",
+      "summary": "Enhance /admin-login with a dedicated first-admin creation action for authenticated non-admin users, including loading/error/success states and redirect on success.",
       "acceptanceCriteria": [
-        "Visiting the root route (\"/\") shows a clearly labeled section titled \"dashboard\" on the homepage.",
-        "The dashboard section renders the same submissions dashboard UI currently shown under the protected dashboard area (the content from the submissions view: heading, stats, filters, and table).",
-        "The dashboard section renders without triggering the admin access gate (it must not show the AccessDeniedScreen for non-admin/non-authenticated users when viewed on the homepage).",
-        "The existing /dashboard route continues to require admin access as it does today (no change to AdminDashboardLayout access control)."
+        "On /admin-login, when Internet Identity authentication succeeds but admin check is false, the page shows a clear next step to create the first admin (in addition to the current unauthorized messaging).",
+        "Clicking the action calls the backend first-admin creation method and shows loading/error/success states in English.",
+        "On success, the page re-fetches admin status and redirects to /dashboard.",
+        "If an admin already exists, the UI clearly indicates that first-admin creation is not available (and does not misleadingly claim success)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/PublicSubmissionsDashboardSection.tsx",
-          "operation": "create",
-          "description": "Create a homepage-embeddable dashboard section that includes a visible section title exactly \"dashboard\" and reuses the existing submissions dashboard UI (stats, filters, table) without wrapping in AdminDashboardLayout. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Extend the typed backendInterface to include the new backend capability for idempotent first-admin creation (method name/signature must match the backend implementation) so the frontend can call it safely."
         },
         {
-          "path": "frontend/src/pages/admin/SubmissionsPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Refactor to extract the submissions dashboard UI (heading, stats, filters, table, loading/error/health states) into a reusable component consumed by both the admin SubmissionsPage and the new public homepage dashboard section, preserving existing admin behavior and visuals."
+          "description": "Add React Query mutation hook(s) to invoke the new first-admin creation backend capability and invalidate/refetch admin status queries after success. Use the authorization component’s frontend guidance for handling auth-dependent queries and trapping authorization errors. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/pages/AdminLoginPage.tsx",
           "operation": "modify",
-          "description": "Render the new public dashboard section directly on the homepage (root route) within the existing page structure, ensuring it is publicly visible and not gated by admin/auth logic."
+          "description": "Update unauthorized state UI to include a 'Create first admin' flow when the user is authenticated but not an admin: render a clear call-to-action, call the new first-admin creation mutation, show English loading/success/error messaging, then re-check admin status and redirect to /dashboard on success. Ensure the UI handles 'admin already exists' as a clear non-success outcome. Use the authorization component’s frontend error-handling guidance to gracefully display authorization/trap failures. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-2",
-      "summary": "Add a top-of-homepage navigation element labeled \"dashboard\" that scrolls/jumps to the homepage dashboard section.",
+      "id": "REQ-4",
+      "summary": "Add an admin-only Admin Management page under /dashboard to list admins and allow add/remove actions from the UI.",
       "acceptanceCriteria": [
-        "From the top of the homepage, there is a visible navigation element labeled \"dashboard\".",
-        "Activating the \"dashboard\" navigation element scrolls/jumps to the dashboard section on the homepage.",
-        "User-facing text for the label is exactly \"dashboard\" (lowercase), as requested."
+        "A new admin-only page is reachable from within the /dashboard area (add a route under the existing AdminDashboardLayout in frontend/src/App.tsx).",
+        "The page displays the current admin list returned by the backend.",
+        "The page provides controls to add an admin by entering a Principal text and submitting.",
+        "The page provides controls to remove an admin from the list, with a confirmation step.",
+        "All user-facing text is in English.",
+        "Non-admin users cannot access the page (they see the existing access denied handling)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add a visible navigation link labeled exactly \"dashboard\" (desktop and mobile) that targets the homepage dashboard section anchor and closes the mobile menu when activated, without redesigning unrelated header links. Verify the component's usage instructions before implementing."
+          "description": "Add React Query hooks for admin management: query to list admins, mutations to add/remove admins, and ensure appropriate query invalidation so the list refreshes after changes. Use the authorization component’s frontend guidance to handle admin-only authorization failures gracefully. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/utils/principal.ts",
+          "operation": "create",
+          "description": "Create a small utility to validate/parse a Principal text input into a Principal object (or return a user-friendly error) for the Admin Management add-admin form."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminManagementPage.tsx",
+          "operation": "create",
+          "description": "Implement the Admin Management page UI: fetch and render the admin principal list, provide an input + submit control to add an admin principal, and provide remove controls with a confirmation step. Display all user-facing strings in English. Rely on the existing AdminDashboardLayout gating (authorization) so non-admins see the current access denied handling. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Ensure the homepage dashboard section has a stable anchor target (e.g., an element id) that the header's \"dashboard\" link scrolls/jumps to."
+          "description": "Register a new child route under the existing /dashboard route (AdminDashboardLayout) that renders AdminManagementPage (e.g., /dashboard/admins), ensuring it is navigable and not an orphan page."
+        },
+        {
+          "path": "frontend/src/components/DashboardHeader.tsx",
+          "operation": "modify",
+          "description": "Add a navigation entry within the existing /dashboard area (e.g., a dropdown item) that routes to the new Admin Management page, making it reachable from within the admin dashboard."
         }
       ]
     }

@@ -2,12 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-render-the-existing-dashboard-content-directly-on-the-homepage-and-make-it-visible-to-all-users-without-requiring-internet-identity-authentication-while-keeping-the-existing-protected-dashboard-route-unchanged",
-      "featureTitle": "Render the existing dashboard content directly on the homepage and make it visible to all users without requiring Internet Identity authentication, while keeping the existing protected /dashboard route unchanged.",
+      "featureId": "feature-update-the-admin-login-ux-admin-login-to-include-a-dedicated-create-first-admin-flow-if-the-user-is-authenticated-but-not-an-admin-provide-an-action-to-create-the-first-admin-only-succeeds-if-no-admins-exist-and-then-re-check-admin-status-and-redirect-to-dashboard-on-success",
+      "featureTitle": "Update the admin login UX (/admin-login) to include a dedicated 'Create first admin' flow: if the user is authenticated but not an admin, provide an action to create the first admin (only succeeds if no admins exist) and then re-check admin status and redirect to /dashboard on success.",
       "files": [
-        "frontend/src/components/PublicSubmissionsDashboardSection.tsx",
-        "frontend/src/pages/HomePage.tsx",
-        "frontend/src/pages/admin/SubmissionsPage.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminLoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,16 +18,19 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-3"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-an-in-page-navigation-affordance-so-the-dashboard-is-easy-to-find-from-the-top-of-the-homepage-e-g-a-dashboard-link-that-scrolls-to-the-dashboard-section",
-      "featureTitle": "Add an in-page navigation affordance so the dashboard is easy to find from the top of the homepage (e.g., a \"dashboard\" link that scrolls to the dashboard section).",
+      "featureId": "feature-add-an-admin-management-page-in-the-admin-dashboard-that-allows-existing-admins-to-view-the-current-admin-list-and-add-remove-admins-from-the-ui",
+      "featureTitle": "Add an Admin Management page in the admin dashboard that allows existing admins to view the current admin list and add/remove admins from the UI.",
       "files": [
-        "frontend/src/components/Header.tsx",
-        "frontend/src/pages/HomePage.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/DashboardHeader.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/admin/AdminManagementPage.tsx",
+        "frontend/src/utils/principal.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -40,7 +42,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-2"
+        "REQ-4"
       ],
       "confidence": "high"
     }

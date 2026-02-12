@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldAlert, LogOut, Home, AlertCircle } from 'lucide-react';
+import { ShieldAlert, LogOut, Home, AlertCircle, LogIn } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { getSessionParameter } from '../utils/urlParams';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,6 +17,10 @@ export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps
     navigate({ to: '/' });
   };
 
+  const handleGoToLogin = () => {
+    navigate({ to: '/admin-login' });
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="max-w-md w-full border-[4px] border-destructive bg-card shadow-2xl">
@@ -27,7 +31,7 @@ export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps
           <div>
             <CardTitle className="text-2xl font-bold text-foreground">Access Denied</CardTitle>
             <CardDescription className="mt-2 font-medium text-foreground">
-              You do not have permission to access the dashboard
+              You do not have permission to access the admin area
             </CardDescription>
           </div>
         </CardHeader>
@@ -44,14 +48,21 @@ export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps
               Administrator Access Required
             </p>
             <p className="font-medium">
-              Your account is not authorized for admin access. Admin privileges are granted via a secure admin token link. 
-              Please contact the system administrator or use a valid admin token link to gain access.
+              Your account is not authorized for admin access. To gain administrator privileges, please sign in with Internet Identity and complete the admin verification process at the Admin Login page.
             </p>
           </div>
           <div className="space-y-3">
             <Button 
-              onClick={handleGoHome} 
+              onClick={handleGoToLogin} 
               variant="default" 
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold border-[3px] border-primary h-12"
+            >
+              <LogIn className="mr-2 h-5 w-5" />
+              Go to Admin Login
+            </Button>
+            <Button 
+              onClick={handleGoHome} 
+              variant="outline" 
               className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold border-[3px] border-secondary h-12"
             >
               <Home className="mr-2 h-5 w-5" />
@@ -60,7 +71,7 @@ export default function AccessDeniedScreen({ onLogout }: AccessDeniedScreenProps
             <Button 
               onClick={onLogout} 
               variant="outline" 
-              className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive border-[3px] border-secondary transition-smooth font-bold h-12 text-foreground"
+              className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive border-[3px] border-border transition-smooth font-bold h-12 text-foreground"
             >
               <LogOut className="mr-2 h-5 w-5" />
               Logout

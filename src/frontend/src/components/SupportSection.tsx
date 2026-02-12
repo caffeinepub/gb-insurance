@@ -1,66 +1,59 @@
-import { useGetAppSettings } from '../hooks/useQueries';
-import { Phone, Clock, Mail } from 'lucide-react';
+import { Phone, Mail, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function SupportSection() {
-  const { data: appSettings } = useGetAppSettings();
-
-  const contactEmail = appSettings?.contactEmail || 'info@iapl.com';
-  const officeHours = appSettings?.officeHours || '9 AM - 5 PM, Monday to Friday';
-
   return (
-    <section className="py-20 px-4 bg-gradient-light">
-      <div className="container mx-auto max-w-6xl">
-        <div className="bg-card border-4 border-primary rounded-2xl p-12 shadow-primary animate-pulse-glow">
-          <div className="text-center mb-12">
-            <div className="inline-block px-6 py-2 bg-primary text-primary-foreground rounded-full font-bold text-sm mb-4 shadow-primary">
-              24/7 SUPPORT
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              We're Here to Help
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
-              Our dedicated support team is available around the clock to assist you with any questions or concerns
-            </p>
-          </div>
+    <section className="py-16 bg-muted">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Need Help? We're Here for You
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Our team is ready to assist you with any questions
+          </p>
+        </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6 bg-background rounded-xl border-2 border-border hover-lift transition-smooth shadow-light hover-shadow-light">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-primary">
-                <Phone className="h-8 w-8 text-primary-foreground" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <Card className="border-2 border-primary/20 bg-card">
+            <CardContent className="pt-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Phone className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-2">Call Us</h3>
-              <p className="text-muted-foreground font-medium mb-3">Available 24/7</p>
+              <h3 className="font-bold text-foreground mb-2">Call Us</h3>
               <a
                 href="tel:+1234567890"
-                className="text-primary font-bold text-lg hover:text-primary/80 transition-colors"
+                className="text-primary hover:underline font-medium"
               >
-                +1 (234) 567-890
+                (123) 456-7890
               </a>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="text-center p-6 bg-background rounded-xl border-2 border-border hover-lift transition-smooth shadow-light hover-shadow-light">
-              <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-secondary">
-                <Mail className="h-8 w-8 text-secondary-foreground" />
+          <Card className="border-2 border-primary/20 bg-card">
+            <CardContent className="pt-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Mail className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-2">Email Us</h3>
-              <p className="text-muted-foreground font-medium mb-3">Quick response</p>
+              <h3 className="font-bold text-foreground mb-2">Email Us</h3>
               <a
-                href={`mailto:${contactEmail}`}
-                className="text-primary font-bold text-lg hover:text-primary/80 transition-colors break-all"
+                href="mailto:info@gbinsurance.com"
+                className="text-primary hover:underline font-medium"
               >
-                {contactEmail}
+                info@gbinsurance.com
               </a>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="text-center p-6 bg-background rounded-xl border-2 border-border hover-lift transition-smooth shadow-light hover-shadow-light">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-primary">
-                <Clock className="h-8 w-8 text-primary-foreground" />
+          <Card className="border-2 border-primary/20 bg-card">
+            <CardContent className="pt-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-2">Office Hours</h3>
-              <p className="text-muted-foreground font-medium mb-3">Visit us</p>
-              <p className="text-foreground font-bold text-base">{officeHours}</p>
-            </div>
-          </div>
+              <h3 className="font-bold text-foreground mb-2">Office Hours</h3>
+              <p className="text-foreground font-medium">Mon-Fri: 9AM-5PM</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>

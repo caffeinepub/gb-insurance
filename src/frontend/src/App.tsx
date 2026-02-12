@@ -1,14 +1,10 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGetCallerUserProfile } from './hooks/useQueries';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import { useTrafficAnalytics } from './hooks/useTrafficAnalytics';
 import HomePage from './pages/HomePage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardLayout from './pages/admin/AdminDashboardLayout';
 import SubmissionsPage from './pages/admin/SubmissionsPage';
-import UsersPage from './pages/admin/UsersPage';
-import ContentPage from './pages/admin/ContentPage';
-import SettingsPage from './pages/admin/SettingsPage';
-import ProfileSetup from './components/ProfileSetup';
+import AdminManagementPage from './pages/admin/AdminManagementPage';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from 'next-themes';
 import { Component, ErrorInfo, ReactNode } from 'react';
@@ -58,16 +54,12 @@ class ErrorBoundary extends Component<
 
 // Root Layout Component
 function RootLayout() {
-  const { identity } = useInternetIdentity();
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
-
-  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-  const showProfileSetup = isAuthenticated && !profileLoading && isFetched && userProfile === null;
+  // Track traffic analytics
+  useTrafficAnalytics();
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <div className="min-h-screen bg-background">
-        {showProfileSetup && <ProfileSetup />}
         <Outlet />
         <Toaster />
       </div>
@@ -104,22 +96,10 @@ const submissionsRoute = createRoute({
   component: SubmissionsPage,
 });
 
-const usersRoute = createRoute({
+const adminManagementRoute = createRoute({
   getParentRoute: () => dashboardRoute,
-  path: '/users',
-  component: UsersPage,
-});
-
-const contentRoute = createRoute({
-  getParentRoute: () => dashboardRoute,
-  path: '/content',
-  component: ContentPage,
-});
-
-const settingsRoute = createRoute({
-  getParentRoute: () => dashboardRoute,
-  path: '/settings',
-  component: SettingsPage,
+  path: '/admins',
+  component: AdminManagementPage,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -127,9 +107,7 @@ const routeTree = rootRoute.addChildren([
   adminLoginRoute,
   dashboardRoute.addChildren([
     submissionsRoute,
-    usersRoute,
-    contentRoute,
-    settingsRoute,
+    adminManagementRoute,
   ]),
 ]);
 

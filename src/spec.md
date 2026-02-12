@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Make the existing submissions dashboard visible directly on the public homepage while keeping the admin-protected `/dashboard` route unchanged.
+**Goal:** Fix admin “not authorized” login issues by adding a safe first-admin creation flow and in-app admin management (list/add/remove admins).
 
 **Planned changes:**
-- Render a clearly labeled "dashboard" section on the root route (`/`) that displays the same submissions dashboard UI (heading, stats, filters, and table) currently shown in the protected dashboard view.
-- Ensure the homepage-rendered dashboard does not trigger the admin access gate (no AccessDeniedScreen for non-admin or unauthenticated users on `/`).
-- Add a visible in-page navigation element at the top of the homepage labeled exactly "dashboard" that scrolls/jumps to the dashboard section.
-- Preserve existing admin access control behavior on `/dashboard` (no changes to the current protected route behavior).
+- Backend: Add an idempotent method that lets any authenticated user create the first admin only when no admins exist, and returns a clear no-op/error when an admin already exists.
+- Backend: Add admin-only methods to list current admins, add an admin principal, and remove an admin principal, with a safeguard to prevent removing the last remaining admin.
+- Frontend: Update `/admin-login` to show a “Create first admin” action when the user is authenticated but not an admin, including loading/success/error states, re-checking admin status, and redirecting to `/dashboard` on success.
+- Frontend: Add an admin-only “Admin Management” page within the `/dashboard` area to view admins and add/remove admins via UI controls (Principal input + remove confirmation).
 
-**User-visible outcome:** Visiting `/` shows a public "dashboard" section (accessible without Internet Identity), and users can click a "dashboard" link at the top of the homepage to jump directly to it; `/dashboard` remains admin-only.
+**User-visible outcome:** Users who authenticate can create the first admin when none exist, and admins can manage the admin list from the dashboard; admin login no longer gets stuck with “not authorized” after a reset when no admins are configured.

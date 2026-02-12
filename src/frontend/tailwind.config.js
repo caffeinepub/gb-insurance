@@ -16,17 +16,6 @@ export default {
         },
         extend: {
             colors: {
-                /* ============================================================================
-                   GB INSURANCE BRAND COLORS - EXTRACTED FROM EXACT LOGO (image1-1.png)
-                   ============================================================================
-                   Colors extracted from the uploaded GB logo with gold "G" and navy blue "B"
-                   
-                   PRIMARY: Gold → oklch(0.72 0.14 65) - Rich warm gold from "G" letter
-                   SECONDARY: Navy Blue → oklch(0.28 0.06 245) - Deep professional navy from "B" letter
-                   ACCENT: Light Gold → oklch(0.85 0.08 65) - Softer gold for highlights
-                   
-                   Professional, luxurious colors matching the exact uploaded logo
-                   ============================================================================ */
                 border: 'oklch(var(--border))',
                 input: 'oklch(var(--input))',
                 ring: 'oklch(var(--ring) / <alpha-value>)',
@@ -71,36 +60,12 @@ export default {
                 info: {
                     DEFAULT: 'oklch(var(--info) / <alpha-value>)',
                     foreground: 'oklch(var(--info-foreground))'
-                },
-                chart: {
-                    1: 'oklch(var(--chart-1))',
-                    2: 'oklch(var(--chart-2))',
-                    3: 'oklch(var(--chart-3))',
-                    4: 'oklch(var(--chart-4))',
-                    5: 'oklch(var(--chart-5))'
-                },
-                sidebar: {
-                    DEFAULT: 'oklch(var(--sidebar))',
-                    foreground: 'oklch(var(--sidebar-foreground))',
-                    primary: 'oklch(var(--sidebar-primary))',
-                    'primary-foreground': 'oklch(var(--sidebar-primary-foreground))',
-                    accent: 'oklch(var(--sidebar-accent))',
-                    'accent-foreground': 'oklch(var(--sidebar-accent-foreground))',
-                    border: 'oklch(var(--sidebar-border))',
-                    ring: 'oklch(var(--sidebar-ring))'
                 }
             },
             borderRadius: {
                 lg: 'var(--radius)',
                 md: 'calc(var(--radius) - 2px)',
                 sm: 'calc(var(--radius) - 4px)'
-            },
-            borderWidth: {
-                '3': '3px'
-            },
-            boxShadow: {
-                xs: '0 1px 2px 0 rgba(0,0,0,0.04)',
-                '3xl': '0 30px 50px -12px rgba(0, 0, 0, 0.25)'
             },
             keyframes: {
                 'accordion-down': {

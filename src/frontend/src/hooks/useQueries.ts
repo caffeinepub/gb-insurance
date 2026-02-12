@@ -1,139 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { ExternalBlob } from '../backend';
 import { useBackendHealth } from './useBackendHealth';
-import type { CustomerForm, InsuranceType, UserProfile, SiteContent, AppSettings } from '../backend';
 import { Principal } from '@dfinity/principal';
 
-// Health check aware query wrapper
-function useHealthAwareQuery<T>(
-  queryKey: string[],
-  queryFn: () => Promise<T>,
-  enabled: boolean = true
-) {
-  const { status: healthStatus } = useBackendHealth();
-  
-  return useQuery<T>({
-    queryKey,
-    queryFn,
-    enabled: enabled && healthStatus === 'ok',
-    retry: (failureCount, error: any) => {
-      if (healthStatus === 'unreachable') return false;
-      if (error?.message?.includes('Unauthorized')) return false;
-      return failureCount < 2;
-    },
-  });
-}
-
-// Admin status check
-export function useIsPrimaryAdmin() {
-  const { actor, isFetching } = useActor();
-
-  return useHealthAwareQuery(
-    ['isAdmin'],
-    async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.isCallerAdmin();
-    },
-    !!actor && !isFetching
-  );
-}
-
-// User profile queries
-export function useGetCallerUserProfile() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  const query = useQuery<UserProfile | null>({
-    queryKey: ['currentUserProfile'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getCallerUserProfile();
-    },
-    enabled: !!actor && !actorFetching,
-    retry: false,
-  });
-
-  return {
-    ...query,
-    isLoading: actorFetching || query.isLoading,
-    isFetched: !!actor && query.isFetched,
-  };
-}
-
-export function useSaveCallerUserProfile() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.saveCallerUserProfile(profile);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-    },
-  });
-}
-
-export function useListAllUserProfiles() {
-  const { actor, isFetching } = useActor();
-
-  return useHealthAwareQuery(
-    ['allUserProfiles'],
-    async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.listAllUserProfiles();
-    },
-    !!actor && !isFetching
-  );
-}
-
-export function useUpdateUserProfile() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ user, profile }: { user: Principal; profile: UserProfile }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateUserProfile(user, profile);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allUserProfiles'] });
-    },
-  });
-}
-
-// Admin login
-export function useAdminLoginWithPassword() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (password: string) => {
-      if (!actor) throw new Error('Actor not available');
-      const success = await actor.adminLoginWithPassword(password);
-      if (!success) {
-        throw new Error('Incorrect password');
-      }
-      return success;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
-    },
-  });
-}
-
-// Customer forms
+// Customer Form Queries
 export function useGetAllForms() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
+  const { status: healthStatus } = useBackendHealth();
 
-  return useHealthAwareQuery(
-    ['customerForms'],
-    async () => {
+  return useQuery({
+    queryKey: ['customerForms'],
+    queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
       return actor.getAllForms();
     },
-    !!actor && !isFetching
-  );
+    enabled: !!actor && !actorFetching && healthStatus === 'ok',
+    retry: false,
+  });
 }
 
 export function useSubmitForm() {
@@ -141,24 +25,21 @@ export function useSubmitForm() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (formData: {
+    mutationFn: async (data: {
       name: string;
-      phone: string;
       email: string;
+      phone: string;
       address: string;
-      interests: InsuranceType[];
-      feedback: string;
-      documents: any[];
+      attachments: ExternalBlob | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.submitForm(
-        formData.name,
-        formData.phone,
-        formData.email,
-        formData.address,
-        formData.interests,
-        formData.feedback,
-        formData.documents
+      
+      await actor.submitForm(
+        data.name,
+        data.email,
+        data.phone,
+        data.address,
+        data.attachments
       );
     },
     onSuccess: () => {
@@ -167,60 +48,93 @@ export function useSubmitForm() {
   });
 }
 
-// Site content
-export function useGetSiteContent() {
-  const { actor, isFetching } = useActor();
+export function useIsPrimaryAdmin() {
+  const { actor, isFetching: actorFetching } = useActor();
 
-  return useHealthAwareQuery(
-    ['siteContent'],
-    async () => {
+  return useQuery<boolean>({
+    queryKey: ['isPrimaryAdmin'],
+    queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getSiteContent();
+      try {
+        return await actor.isCallerAdmin();
+      } catch (error: any) {
+        // Surface errors instead of silent failure
+        console.error('Admin status check failed:', error);
+        throw error;
+      }
     },
-    !!actor && !isFetching
-  );
+    enabled: !!actor && !actorFetching,
+    retry: 1, // Allow one retry
+    retryDelay: 1000,
+  });
 }
 
-export function useUpdateSiteContent() {
+// First Admin Creation
+export function useCreateFirstAdmin() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (content: SiteContent) => {
+    mutationFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateSiteContent(content);
+      
+      // Use empty strings as tokens since we're creating the first admin
+      // The backend will handle the first-admin creation logic
+      await actor.initializeAdmin('', '');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['siteContent'] });
+      // Invalidate admin status to trigger re-check
+      queryClient.invalidateQueries({ queryKey: ['isPrimaryAdmin'] });
     },
   });
 }
 
-// App settings
-export function useGetAppSettings() {
-  const { actor, isFetching } = useActor();
+// Admin Management Queries
+export function useListAdmins() {
+  const { actor, isFetching: actorFetching } = useActor();
 
-  return useHealthAwareQuery(
-    ['appSettings'],
-    async () => {
+  return useQuery<Principal[]>({
+    queryKey: ['admins'],
+    queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getAppSettings();
+      try {
+        return await actor.listAdmins();
+      } catch (error: any) {
+        console.error('Failed to list admins:', error);
+        throw error;
+      }
     },
-    !!actor && !isFetching
-  );
+    enabled: !!actor && !actorFetching,
+    retry: 1,
+  });
 }
 
-export function useUpdateAppSettings() {
+export function useAddAdmin() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (settings: AppSettings) => {
+    mutationFn: async (newAdmin: Principal) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateAppSettings(settings);
+      await actor.addAdmin(newAdmin);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
+    },
+  });
+}
+
+export function useRemoveAdmin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (adminToRemove: Principal) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.removeAdmin(adminToRemove);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
     },
   });
 }

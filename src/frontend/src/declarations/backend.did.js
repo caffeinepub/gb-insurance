@@ -24,57 +24,18 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const ExternalBlob = IDL.Vec(IDL.Nat8);
-export const InsuranceType = IDL.Variant({
-  'travel' : IDL.Null,
-  'life' : IDL.Null,
-  'personalAccident' : IDL.Null,
-  'property' : IDL.Null,
-  'vehicle' : IDL.Null,
-  'health' : IDL.Null,
-});
 export const Time = IDL.Int;
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
 export const CustomerForm = IDL.Record({
   'id' : IDL.Nat,
-  'uploadedDocuments' : IDL.Vec(ExternalBlob),
   'name' : IDL.Text,
-  'insuranceInterests' : IDL.Vec(InsuranceType),
-  'feedback' : IDL.Text,
   'email' : IDL.Text,
   'address' : IDL.Text,
   'timestamp' : Time,
   'phone' : IDL.Text,
+  'attachments' : IDL.Opt(ExternalBlob),
 });
-export const AppSettings = IDL.Record({
-  'officeHours' : IDL.Text,
-  'maintenanceMode' : IDL.Bool,
-  'contactEmail' : IDL.Text,
-});
-export const UserProfile = IDL.Record({
-  'name' : IDL.Text,
-  'role' : IDL.Text,
-  'email' : IDL.Text,
-});
-export const Testimonial = IDL.Record({
-  'serviceUsed' : IDL.Text,
-  'clientName' : IDL.Text,
-  'feedback' : IDL.Text,
-  'rating' : IDL.Nat,
-});
-export const ServiceInfo = IDL.Record({
-  'title' : IDL.Text,
-  'icon' : IDL.Opt(ExternalBlob),
-  'description' : IDL.Text,
-});
-export const SiteContent = IDL.Record({
-  'homeTitle' : IDL.Text,
-  'heroText' : IDL.Text,
-  'heroImage' : IDL.Opt(ExternalBlob),
-  'generalInfo' : IDL.Text,
-  'testimonials' : IDL.Vec(Testimonial),
-  'homeDescription' : IDL.Text,
-  'services' : IDL.Vec(ServiceInfo),
-});
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -104,50 +65,29 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'adminLoginWithPassword' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'addAdmin' : IDL.Func([IDL.Principal], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'getAllEncryptedPasswords' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   'getAllForms' : IDL.Func([], [IDL.Vec(CustomerForm)], ['query']),
-  'getAppSettings' : IDL.Func([], [AppSettings], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getFormById' : IDL.Func([IDL.Nat], [IDL.Opt(CustomerForm)], ['query']),
-  'getFormsByInsuranceType' : IDL.Func(
-      [InsuranceType],
-      [IDL.Vec(CustomerForm)],
-      ['query'],
-    ),
-  'getSiteContent' : IDL.Func([], [SiteContent], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'getVisitorCount' : IDL.Func([], [IDL.Nat], ['query']),
+  'initializeAdmin' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'listAllUserProfiles' : IDL.Func(
-      [],
-      [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
-      ['query'],
-    ),
-  'recordVisitor' : IDL.Func([], [], []),
-  'resetAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+  'listAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+  'removeAdmin' : IDL.Func([IDL.Principal], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'submitForm' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Vec(InsuranceType),
-        IDL.Text,
-        IDL.Vec(ExternalBlob),
-      ],
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(ExternalBlob)],
       [],
       [],
     ),
-  'updateAppSettings' : IDL.Func([AppSettings], [], []),
-  'updateSiteContent' : IDL.Func([SiteContent], [], []),
-  'updateUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
 });
 
 export const idlInitArgs = [];
@@ -169,57 +109,18 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const ExternalBlob = IDL.Vec(IDL.Nat8);
-  const InsuranceType = IDL.Variant({
-    'travel' : IDL.Null,
-    'life' : IDL.Null,
-    'personalAccident' : IDL.Null,
-    'property' : IDL.Null,
-    'vehicle' : IDL.Null,
-    'health' : IDL.Null,
-  });
   const Time = IDL.Int;
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
   const CustomerForm = IDL.Record({
     'id' : IDL.Nat,
-    'uploadedDocuments' : IDL.Vec(ExternalBlob),
     'name' : IDL.Text,
-    'insuranceInterests' : IDL.Vec(InsuranceType),
-    'feedback' : IDL.Text,
     'email' : IDL.Text,
     'address' : IDL.Text,
     'timestamp' : Time,
     'phone' : IDL.Text,
+    'attachments' : IDL.Opt(ExternalBlob),
   });
-  const AppSettings = IDL.Record({
-    'officeHours' : IDL.Text,
-    'maintenanceMode' : IDL.Bool,
-    'contactEmail' : IDL.Text,
-  });
-  const UserProfile = IDL.Record({
-    'name' : IDL.Text,
-    'role' : IDL.Text,
-    'email' : IDL.Text,
-  });
-  const Testimonial = IDL.Record({
-    'serviceUsed' : IDL.Text,
-    'clientName' : IDL.Text,
-    'feedback' : IDL.Text,
-    'rating' : IDL.Nat,
-  });
-  const ServiceInfo = IDL.Record({
-    'title' : IDL.Text,
-    'icon' : IDL.Opt(ExternalBlob),
-    'description' : IDL.Text,
-  });
-  const SiteContent = IDL.Record({
-    'homeTitle' : IDL.Text,
-    'heroText' : IDL.Text,
-    'heroImage' : IDL.Opt(ExternalBlob),
-    'generalInfo' : IDL.Text,
-    'testimonials' : IDL.Vec(Testimonial),
-    'homeDescription' : IDL.Text,
-    'services' : IDL.Vec(ServiceInfo),
-  });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -249,50 +150,29 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'adminLoginWithPassword' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'addAdmin' : IDL.Func([IDL.Principal], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'getAllEncryptedPasswords' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     'getAllForms' : IDL.Func([], [IDL.Vec(CustomerForm)], ['query']),
-    'getAppSettings' : IDL.Func([], [AppSettings], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getFormById' : IDL.Func([IDL.Nat], [IDL.Opt(CustomerForm)], ['query']),
-    'getFormsByInsuranceType' : IDL.Func(
-        [InsuranceType],
-        [IDL.Vec(CustomerForm)],
-        ['query'],
-      ),
-    'getSiteContent' : IDL.Func([], [SiteContent], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'getVisitorCount' : IDL.Func([], [IDL.Nat], ['query']),
+    'initializeAdmin' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'listAllUserProfiles' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
-        ['query'],
-      ),
-    'recordVisitor' : IDL.Func([], [], []),
-    'resetAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+    'listAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'removeAdmin' : IDL.Func([IDL.Principal], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'submitForm' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Vec(InsuranceType),
-          IDL.Text,
-          IDL.Vec(ExternalBlob),
-        ],
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(ExternalBlob)],
         [],
         [],
       ),
-    'updateAppSettings' : IDL.Func([AppSettings], [], []),
-    'updateSiteContent' : IDL.Func([SiteContent], [], []),
-    'updateUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
   });
 };
 

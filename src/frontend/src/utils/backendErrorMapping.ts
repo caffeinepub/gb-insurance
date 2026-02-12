@@ -8,6 +8,7 @@ export type BackendErrorCategory =
   | 'unauthorized'   // Authentication/authorization failure
   | 'unreachable'    // Network/connectivity issue
   | 'timeout'        // Request timed out
+  | 'validation'     // Data validation error
   | 'unknown';       // Other errors
 
 export interface CategorizedError {
@@ -24,26 +25,59 @@ export function categorizeBackendError(error: unknown): CategorizedError {
   const err = error instanceof Error ? error : new Error(String(error));
   const errorMessage = err.message.toLowerCase();
 
-  // Check for trap messages (backend rejection)
-  if (errorMessage.includes('trap') || errorMessage.includes('rejected')) {
+  // Check for unauthorized/authentication errors first (before trap check)
+  if (
+    errorMessage.includes('unauthorized') ||
+    errorMessage.includes('not authorized') ||
+    errorMessage.includes('permission denied') ||
+    errorMessage.includes('only admins') ||
+    errorMessage.includes('only users') ||
+    (errorMessage.includes('anonymous') && errorMessage.includes('cannot'))
+  ) {
     return {
-      category: 'trap',
+      category: 'unauthorized',
+      message: 'You do not have permission to perform this action. Please sign in with an authorized account.',
+      originalError: err,
+      canRetry: false,
+    };
+  }
+
+  // Check for validation errors
+  if (
+    errorMessage.includes('invalid') ||
+    errorMessage.includes('required') ||
+    errorMessage.includes('must be') ||
+    errorMessage.includes('validation')
+  ) {
+    return {
+      category: 'validation',
       message: extractTrapMessage(err.message),
       originalError: err,
       canRetry: false,
     };
   }
 
-  // Check for unauthorized/authentication errors
-  if (
-    errorMessage.includes('unauthorized') ||
-    errorMessage.includes('not authorized') ||
-    errorMessage.includes('permission denied') ||
-    errorMessage.includes('anonymous')
-  ) {
+  // Check for trap messages (backend rejection)
+  if (errorMessage.includes('trap') || errorMessage.includes('rejected')) {
+    const trapMessage = extractTrapMessage(err.message);
+    
+    // Check if the trap message is actually an authorization error
+    if (
+      trapMessage.toLowerCase().includes('unauthorized') ||
+      trapMessage.toLowerCase().includes('only admins') ||
+      trapMessage.toLowerCase().includes('only users')
+    ) {
+      return {
+        category: 'unauthorized',
+        message: trapMessage,
+        originalError: err,
+        canRetry: false,
+      };
+    }
+
     return {
-      category: 'unauthorized',
-      message: 'You must be authenticated to perform this action. Please sign in with Internet Identity first.',
+      category: 'trap',
+      message: trapMessage,
       originalError: err,
       canRetry: false,
     };
@@ -65,7 +99,8 @@ export function categorizeBackendError(error: unknown): CategorizedError {
     errorMessage.includes('fetch') ||
     errorMessage.includes('connection') ||
     errorMessage.includes('unreachable') ||
-    errorMessage.includes('failed to fetch')
+    errorMessage.includes('failed to fetch') ||
+    errorMessage.includes('could not be reached')
   ) {
     return {
       category: 'unreachable',

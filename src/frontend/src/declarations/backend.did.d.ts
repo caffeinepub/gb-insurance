@@ -10,55 +10,18 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface AppSettings {
-  'officeHours' : string,
-  'maintenanceMode' : boolean,
-  'contactEmail' : string,
-}
 export interface CustomerForm {
   'id' : bigint,
-  'uploadedDocuments' : Array<ExternalBlob>,
   'name' : string,
-  'insuranceInterests' : Array<InsuranceType>,
-  'feedback' : string,
   'email' : string,
   'address' : string,
   'timestamp' : Time,
   'phone' : string,
+  'attachments' : [] | [ExternalBlob],
 }
 export type ExternalBlob = Uint8Array;
-export type InsuranceType = { 'travel' : null } |
-  { 'life' : null } |
-  { 'personalAccident' : null } |
-  { 'property' : null } |
-  { 'vehicle' : null } |
-  { 'health' : null };
-export interface ServiceInfo {
-  'title' : string,
-  'icon' : [] | [ExternalBlob],
-  'description' : string,
-}
-export interface SiteContent {
-  'homeTitle' : string,
-  'heroText' : string,
-  'heroImage' : [] | [ExternalBlob],
-  'generalInfo' : string,
-  'testimonials' : Array<Testimonial>,
-  'homeDescription' : string,
-  'services' : Array<ServiceInfo>,
-}
-export interface Testimonial {
-  'serviceUsed' : string,
-  'clientName' : string,
-  'feedback' : string,
-  'rating' : bigint,
-}
 export type Time = bigint;
-export interface UserProfile {
-  'name' : string,
-  'role' : string,
-  'email' : string,
-}
+export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -90,37 +53,24 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'adminLoginWithPassword' : ActorMethod<[string], boolean>,
+  'addAdmin' : ActorMethod<[Principal], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'getAllEncryptedPasswords' : ActorMethod<[], Array<string>>,
   'getAllForms' : ActorMethod<[], Array<CustomerForm>>,
-  'getAppSettings' : ActorMethod<[], AppSettings>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getFormById' : ActorMethod<[bigint], [] | [CustomerForm]>,
-  'getFormsByInsuranceType' : ActorMethod<[InsuranceType], Array<CustomerForm>>,
-  'getSiteContent' : ActorMethod<[], SiteContent>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVisitorCount' : ActorMethod<[], bigint>,
+  'initializeAdmin' : ActorMethod<[string, string], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'listAllUserProfiles' : ActorMethod<[], Array<[Principal, UserProfile]>>,
-  'recordVisitor' : ActorMethod<[], undefined>,
-  'resetAdminPassword' : ActorMethod<[string, string], boolean>,
+  'listAdmins' : ActorMethod<[], Array<Principal>>,
+  'removeAdmin' : ActorMethod<[Principal], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitForm' : ActorMethod<
-    [
-      string,
-      string,
-      string,
-      string,
-      Array<InsuranceType>,
-      string,
-      Array<ExternalBlob>,
-    ],
+    [string, string, string, string, [] | [ExternalBlob]],
     undefined
   >,
-  'updateAppSettings' : ActorMethod<[AppSettings], undefined>,
-  'updateSiteContent' : ActorMethod<[SiteContent], undefined>,
-  'updateUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

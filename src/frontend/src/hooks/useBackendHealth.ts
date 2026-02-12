@@ -11,7 +11,7 @@ export interface UseBackendHealthResult {
 
 /**
  * Hook to check backend health and connectivity
- * Uses a simple query call to verify backend is reachable
+ * Uses getVisitorCount as a simple health check (public query, no auth required)
  */
 export function useBackendHealth(): UseBackendHealthResult {
   const query = useQuery<boolean, Error>({
@@ -20,8 +20,8 @@ export function useBackendHealth(): UseBackendHealthResult {
       try {
         // Create an anonymous actor to test connectivity
         const actor = await createActorWithConfig();
-        // Use getAppSettings as a simple health check (it's a public query)
-        await actor.getAppSettings();
+        // Use getVisitorCount as a simple health check (public query)
+        await actor.getVisitorCount();
         return true;
       } catch (error) {
         console.error('Health check failed:', error);

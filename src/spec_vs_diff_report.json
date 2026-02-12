@@ -1,26 +1,71 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T20:21:24.525Z",
-  "summary": "Implements a publicly visible homepage “dashboard” section by introducing a reusable `SubmissionsDashboard` component and embedding it in `HomePage`, plus adds a header navigation button labeled exactly “dashboard” that scrolls to the section. No evidence in the provided diff summary that the protected `/dashboard` admin access control was modified.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-11T18:29:10.188Z",
+  "summary": "The diff adds an Admin Management UI page, routing/navigation to it, and React Query hooks for listing/adding/removing admins. However, the backend changes shown do not clearly implement the requested dedicated, idempotent “create first admin” method, and backend admin listing/last-admin safety are not evidenced in the provided backend diff snippet. Several unrelated UI/UX and styling changes were also introduced beyond the BuildRequest.",
+  "missing_requirements": [
     {
-      "description": "Updates to project tracking/metadata state file (`project_state.json`) that are not part of the requested homepage dashboard rendering or navigation affordance.",
-      "reason": "BuildRequest requirements only mention rendering the dashboard on the homepage and adding in-page navigation; no request to modify project metadata/state files.",
+      "id": "REQ-1",
+      "requirement": "Add a dedicated backend method to let any authenticated caller create the first admin when no admins exist, idempotently (safe to call repeatedly), and return a clear no-op/error once an admin exists.",
+      "reason": "Frontend ‘first admin’ creation is implemented by calling the existing `initializeAdmin('', '')` method rather than a new, explicit first-admin bootstrap method. The backend diff excerpt shows `initializeAdmin` but does not show a new idempotent ‘create first admin’ API or logic ensuring ‘only when zero admins’, ‘no duplicates’, and a clear no-op/error when admins already exist.",
       "evidence": [
-        "project_state.json"
+        "backend/main.mo",
+        "frontend/src/hooks/useQueries.ts (useCreateFirstAdmin calls actor.initializeAdmin('', ''))",
+        "frontend/src/pages/AdminLoginPage.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Backend support for admin management: admin-only list admins; admin-only add/remove admins; prevent removal of the last remaining admin (or enforce a safe rule).",
+      "reason": "The frontend calls `actor.listAdmins()` and `actor.removeAdmin(...)`, but the backend diff excerpt only clearly shows `addAdmin` and a truncated `removeAdmin` implementation; `listAdmins` is not evidenced, and prevention of removing the last admin is not evidenced in the shown backend snippet.",
+      "evidence": [
+        "backend/main.mo (listAdmins not shown; removeAdmin is truncated)",
+        "frontend/src/hooks/useQueries.ts (uses actor.listAdmins, actor.removeAdmin)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Admin login page provides a dedicated ‘Create first admin’ action that only succeeds if no admins exist; shows loading/error/success states; on success re-checks admin status and redirects to /dashboard; if an admin already exists, UI clearly indicates first-admin creation is not available.",
+      "reason": "While `/admin-login` was updated and a `useCreateFirstAdmin` hook exists, the actual backend method it calls is `initializeAdmin('', '')` (not the required dedicated first-admin method). The provided truncation of `AdminLoginPage.tsx` cuts off the handler implementation, so the required ‘not available if admin exists’ behavior is not confirmed, and it depends on the missing/unclear backend behavior in REQ-1.",
+      "evidence": [
+        "frontend/src/pages/AdminLoginPage.tsx (truncated before create-first-admin handler)",
+        "frontend/src/hooks/useQueries.ts (useCreateFirstAdmin uses initializeAdmin)"
       ]
     }
   ],
-  "confidence": 0.72,
+  "hallucinated_features": [
+    {
+      "description": "Added a global ErrorBoundary and refresh UI in App root, including new error page content and an emoji warning symbol.",
+      "reason": "Not requested in the BuildRequest; scope was admin bootstrap/admin management flow and related dashboard routing.",
+      "evidence": [
+        "frontend/src/App.tsx"
+      ]
+    },
+    {
+      "description": "Broad UI/content/styling changes across many pages/components (Homepage composition changes, dashboard UX changes, hero/services/footer styling changes, profile setup modal changes, etc.).",
+      "reason": "Not requested; BuildRequest focuses on admin bootstrap/login flow and admin management page only.",
+      "evidence": [
+        "frontend-file-summaries.txt (multiple components/pages described as updated beyond admin bootstrap/management)"
+      ]
+    },
+    {
+      "description": "Added principal parsing/formatting utility module.",
+      "reason": "Not explicitly requested (though it supports admin management UI input validation).",
+      "evidence": [
+        "frontend/src/utils/principal.ts"
+      ]
+    }
+  ],
+  "confidence": 0.66,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/Header.tsx",
-    "frontend/src/components/PublicSubmissionsDashboardSection.tsx",
-    "frontend/src/components/SubmissionsDashboard.tsx",
-    "frontend/src/pages/HomePage.tsx",
-    "frontend/src/pages/admin/SubmissionsPage.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/components/DashboardHeader.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "frontend/src/pages/admin/AdminManagementPage.tsx",
+    "frontend/src/utils/principal.ts",
     "project_state.json"
   ]
 }

@@ -1,79 +1,71 @@
-import { useGetAppSettings } from '../hooks/useQueries';
-import { Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { Heart, Phone, Mail, MapPin } from 'lucide-react';
 import { BRANDING } from '../constants/branding';
 
 export default function Footer() {
-  const { data: appSettings } = useGetAppSettings();
-
-  const contactEmail = appSettings?.contactEmail || 'info@iapl.com';
-  const officeHours = appSettings?.officeHours || '9 AM - 5 PM, Monday to Friday';
+  const currentYear = new Date().getFullYear();
+  const appIdentifier = typeof window !== 'undefined' 
+    ? encodeURIComponent(window.location.hostname)
+    : 'gb-insurance';
 
   return (
-    <footer className="bg-gradient-light border-t-2 border-border">
+    <footer className="bg-secondary text-secondary-foreground">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-3 gap-12 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Company Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img
                 src={BRANDING.logo.main}
                 alt={BRANDING.logo.alt}
-                className="h-12 w-auto logo-enhanced"
+                className="h-10 w-auto"
                 onError={(e) => {
-                  console.error('Logo failed to load');
                   e.currentTarget.style.display = 'none';
                 }}
               />
-              <div>
-                <h3 className="text-lg font-bold text-foreground">{BRANDING.company.name}</h3>
-                <p className="text-xs text-muted-foreground font-medium">{BRANDING.company.tagline}</p>
-              </div>
+              <h3 className="text-xl font-bold">{BRANDING.company.name}</h3>
             </div>
-            <p className="text-muted-foreground font-medium">
-              Your trusted partner for comprehensive insurance solutions. Protecting what matters most since 2009.
+            <p className="text-sm opacity-90 mb-4">
+              {BRANDING.company.description}
             </p>
           </div>
 
+          {/* Contact Info */}
           <div>
-            <h4 className="text-lg font-bold text-foreground mb-4">Contact Us</h4>
-            <div className="space-y-3">
+            <h3 className="text-lg font-bold mb-4">Contact Us</h3>
+            <div className="space-y-3 text-sm">
               <a
-                href={`mailto:${contactEmail}`}
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors font-medium"
+                href={`tel:${BRANDING.contact.phone}`}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <Mail className="h-5 w-5" />
-                {contactEmail}
+                <Phone className="h-4 w-4" />
+                <span>{BRANDING.contact.phone}</span>
               </a>
               <a
-                href="tel:+1234567890"
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors font-medium"
+                href={`mailto:${BRANDING.contact.email}`}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <Phone className="h-5 w-5" />
-                +1 (234) 567-890
+                <Mail className="h-4 w-4" />
+                <span>{BRANDING.contact.email}</span>
               </a>
-              <div className="flex items-start gap-3 text-muted-foreground font-medium">
-                <MapPin className="h-5 w-5 mt-1" />
-                <span>123 Insurance Street<br />Business District, City 12345</span>
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{BRANDING.contact.address}</span>
               </div>
             </div>
-          </div>
-
-          <div>
-            <h4 className="text-lg font-bold text-foreground mb-4">Office Hours</h4>
-            <p className="text-muted-foreground font-medium mb-4">{officeHours}</p>
-            <p className="text-sm text-muted-foreground font-medium">
-              Emergency support available 24/7
-            </p>
           </div>
         </div>
 
-        <div className="border-t-2 border-border pt-8 text-center">
-          <p className="text-muted-foreground font-medium">
-            © 2026. Built with <Heart className="inline h-4 w-4 text-destructive" /> using{' '}
+        <div className="border-t border-secondary-foreground/20 pt-6 text-center text-sm">
+          <p className="flex items-center justify-center gap-2 mb-2">
+            © {currentYear} {BRANDING.company.name}. All rights reserved.
+          </p>
+          <p className="flex items-center justify-center gap-1 opacity-80">
+            Built with <Heart className="h-4 w-4 text-red-400" /> using{' '}
             <a
-              href="https://caffeine.ai"
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${appIdentifier}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:text-primary/80 font-bold transition-colors"
+              className="underline hover:opacity-80 transition-opacity"
             >
               caffeine.ai
             </a>

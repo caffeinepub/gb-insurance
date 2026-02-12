@@ -4,36 +4,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { InsuranceType, ExternalBlob } from '../backend';
-import { Loader2, Send, CheckCircle2, Sparkles, Upload, X, FileText } from 'lucide-react';
-
-const insuranceOptions = [
-  { value: InsuranceType.life, label: 'Life Insurance', gradient: 'bg-primary' },
-  { value: InsuranceType.health, label: 'Health Insurance', gradient: 'bg-primary' },
-  { value: InsuranceType.vehicle, label: 'Vehicle Insurance', gradient: 'bg-primary' },
-  { value: InsuranceType.property, label: 'Property Insurance', gradient: 'bg-primary' },
-  { value: InsuranceType.travel, label: 'Travel Insurance', gradient: 'bg-primary' },
-  { value: InsuranceType.personalAccident, label: 'Personal Accident', gradient: 'bg-muted' },
-];
+import { ExternalBlob } from '../backend';
+import { Loader2, Send, CheckCircle2, Upload, X, FileText, AlertCircle } from 'lucide-react';
+import { getUserFriendlyErrorMessage } from '../utils/backendErrorMapping';
 
 export default function CustomerForm() {
   const submitFormMutation = useSubmitForm();
   
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
     email: '',
+    phone: '',
     address: '',
-    insuranceInterests: [] as InsuranceType[],
-    feedback: '',
-    documents: [] as ExternalBlob[],
+    attachments: null as ExternalBlob | null,
   });
 
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; size: number }>>([]);
-  const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submissionError, setSubmissionError] = useState<string>('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -42,20 +33,10 @@ export default function CustomerForm() {
       newErrors.name = 'Name is required';
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
-    }
-
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (formData.insuranceInterests.length === 0) {
-      newErrors.insuranceInterests = 'Please select at least one insurance type';
     }
 
     setErrors(newErrors);
@@ -66,103 +47,79 @@ export default function CustomerForm() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newDocuments: ExternalBlob[] = [];
-    const newFileInfo: Array<{ name: string; size: number }> = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, documents: `File ${file.name} is too large. Maximum size is 5MB.` }));
-        continue;
-      }
-
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        
-        const blob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
-          setUploadProgress(prev => ({ ...prev, [i]: percentage }));
-        });
-        
-        newDocuments.push(blob);
-        newFileInfo.push({ name: file.name, size: file.size });
-      } catch (error) {
-        console.error('Error processing file:', error);
-        setErrors(prev => ({ ...prev, documents: `Failed to process file ${file.name}` }));
-      }
+    const file = files[0];
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, attachments: `File is too large. Maximum size is 5MB.` }));
+      return;
     }
 
-    setFormData(prev => ({
-      ...prev,
-      documents: [...prev.documents, ...newDocuments],
-    }));
-    setUploadedFiles(prev => [...prev, ...newFileInfo]);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      const blob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
+        setUploadProgress(percentage);
+      });
+      
+      setFormData(prev => ({
+        ...prev,
+        attachments: blob,
+      }));
+      setUploadedFile({ name: file.name, size: file.size });
+      setErrors(prev => ({ ...prev, attachments: '' }));
+    } catch (error) {
+      console.error('Error processing file:', error);
+      setErrors(prev => ({ ...prev, attachments: `Failed to process file ${file.name}` }));
+    }
     
-    // Clear file input
     e.target.value = '';
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = () => {
     setFormData(prev => ({
       ...prev,
-      documents: prev.documents.filter((_, i) => i !== index),
+      attachments: null,
     }));
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-    setUploadProgress(prev => {
-      const newProgress = { ...prev };
-      delete newProgress[index];
-      return newProgress;
-    });
+    setUploadedFile(null);
+    setUploadProgress(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmissionError('');
 
     if (!validateForm()) {
       return;
     }
 
     try {
-      // Map to backend expected format
       await submitFormMutation.mutateAsync({
         name: formData.name,
-        phone: formData.phone,
         email: formData.email,
+        phone: formData.phone,
         address: formData.address,
-        interests: formData.insuranceInterests,
-        feedback: formData.feedback,
-        documents: formData.documents,
+        attachments: formData.attachments,
       });
       
-      // Reset form
+      setShowSuccess(true);
+      
       setFormData({
         name: '',
-        phone: '',
         email: '',
+        phone: '',
         address: '',
-        insuranceInterests: [],
-        feedback: '',
-        documents: [],
+        attachments: null,
       });
-      setUploadedFiles([]);
-      setUploadProgress({});
+      setUploadedFile(null);
+      setUploadProgress(0);
       setErrors({});
+
+      setTimeout(() => setShowSuccess(false), 5000);
     } catch (error) {
       console.error('Form submission error:', error);
-    }
-  };
-
-  const handleCheckboxChange = (type: InsuranceType, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      insuranceInterests: checked
-        ? [...prev.insuranceInterests, type]
-        : prev.insuranceInterests.filter(t => t !== type),
-    }));
-    if (errors.insuranceInterests) {
-      setErrors(prev => ({ ...prev, insuranceInterests: '' }));
+      const errorMessage = getUserFriendlyErrorMessage(error);
+      setSubmissionError(errorMessage);
     }
   };
 
@@ -173,82 +130,67 @@ export default function CustomerForm() {
   };
 
   return (
-    <section id="contact" className="py-20 bg-gradient-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,oklch(0.75_0.12_85_/_0.04),transparent_70%)]"></div>
-      
-      <div className="container mx-auto px-4 max-w-4xl relative z-10">
-        <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-bold mb-4 shadow-gold">
-            <Sparkles className="h-4 w-4" />
-            <span>Get Started Today</span>
-          </div>
+    <section id="contact" className="py-16 bg-muted/30">
+      <div className="container mx-auto px-4 max-w-3xl">
+        <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Get Your Free Quote
           </h2>
-          <p className="text-lg text-foreground">
+          <p className="text-lg text-muted-foreground">
             Fill out the form below and our team will contact you within 24 hours
           </p>
         </div>
 
-        <Card className="shadow-2xl border-2 border-border animate-slide-up hover:shadow-3xl transition-smooth bg-white hover-shadow-gold">
-          <CardHeader className="border-b-2 border-border bg-card">
-            <CardTitle className="text-2xl font-bold text-foreground">Customer Information Form</CardTitle>
-            <CardDescription className="text-base text-foreground">
-              Please provide your details and insurance requirements
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-success/10 border border-success rounded-lg flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-success">Application Submitted Successfully!</p>
+              <p className="text-sm text-success/80">We'll review your information and get back to you soon.</p>
+            </div>
+          </div>
+        )}
+
+        {submissionError && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-lg flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-destructive">Submission Failed</p>
+              <p className="text-sm text-destructive/80">{submissionError}</p>
+            </div>
+          </div>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Information Form</CardTitle>
+            <CardDescription>
+              Please provide your details and we'll get back to you shortly
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <Label htmlFor="name" className="text-sm font-semibold text-foreground">
-                    Full Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={(e) => {
-                      setFormData({ ...formData, name: e.target.value });
-                      if (errors.name) setErrors({ ...errors, name: '' });
-                    }}
-                    className={`h-12 bg-input border-2 transition-smooth text-base text-foreground placeholder:text-muted-foreground ${
-                      errors.name 
-                        ? 'border-destructive focus:border-destructive focus-visible:ring-destructive' 
-                        : 'border-border focus:border-primary focus-visible:ring-primary hover:border-primary'
-                    }`}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-destructive animate-fade-in font-medium">{errors.name}</p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="phone" className="text-sm font-semibold text-foreground">
-                    Phone Number <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="phone"
-                    placeholder="10-digit mobile number"
-                    value={formData.phone}
-                    onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
-                      if (errors.phone) setErrors({ ...errors, phone: '' });
-                    }}
-                    className={`h-12 bg-input border-2 transition-smooth text-base text-foreground placeholder:text-muted-foreground ${
-                      errors.phone 
-                        ? 'border-destructive focus:border-destructive focus-visible:ring-destructive' 
-                        : 'border-border focus:border-primary focus-visible:ring-primary hover:border-primary'
-                    }`}
-                  />
-                  {errors.phone && (
-                    <p className="text-sm text-destructive animate-fade-in font-medium">{errors.phone}</p>
-                  )}
-                </div>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  Full Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value });
+                    if (errors.name) setErrors({ ...errors, name: '' });
+                  }}
+                  className={errors.name ? 'border-destructive' : ''}
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                )}
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="email" className="text-sm font-semibold text-foreground">
+              <div className="space-y-2">
+                <Label htmlFor="email">
                   Email Address <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -260,156 +202,113 @@ export default function CustomerForm() {
                     setFormData({ ...formData, email: e.target.value });
                     if (errors.email) setErrors({ ...errors, email: '' });
                   }}
-                  className={`h-12 bg-input border-2 transition-smooth text-base text-foreground placeholder:text-muted-foreground ${
-                    errors.email 
-                      ? 'border-destructive focus:border-destructive focus-visible:ring-destructive' 
-                      : 'border-border focus:border-primary focus-visible:ring-primary hover:border-primary'
-                  }`}
+                  className={errors.email ? 'border-destructive' : ''}
                 />
                 {errors.email && (
-                  <p className="text-sm text-destructive animate-fade-in font-medium">{errors.email}</p>
+                  <p className="text-sm text-destructive">{errors.email}</p>
                 )}
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="address" className="text-sm font-semibold text-foreground">
-                  Address
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="(123) 456-7890"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea
                   id="address"
-                  placeholder="Your complete address"
+                  placeholder="Enter your full address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="h-12 bg-input border-2 border-border transition-smooth focus:border-primary focus-visible:ring-primary hover:border-primary text-base text-foreground placeholder:text-muted-foreground"
+                  rows={3}
                 />
               </div>
 
-              <div className="space-y-4">
-                <Label className="text-sm font-semibold text-foreground">
-                  Insurance Interests <span className="text-destructive">*</span>
-                </Label>
-                <div className="grid md:grid-cols-2 gap-4 p-6 bg-card rounded-xl border-2 border-border">
-                  {insuranceOptions.map((option) => (
-                    <div 
-                      key={option.value} 
-                      className="flex items-center space-x-3 p-4 rounded-xl bg-white border-2 border-border transition-smooth hover:border-primary hover:shadow-lg hover:scale-105"
-                    >
-                      <Checkbox
-                        id={option.value}
-                        checked={formData.insuranceInterests.includes(option.value)}
-                        onCheckedChange={(checked) =>
-                          handleCheckboxChange(option.value, checked as boolean)
-                        }
-                        className="transition-smooth h-5 w-5 border-2 border-border data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                      />
-                      <Label
-                        htmlFor={option.value}
-                        className="text-sm font-medium cursor-pointer transition-smooth hover:text-primary flex-1 text-foreground"
-                      >
-                        {option.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {errors.insuranceInterests && (
-                  <p className="text-sm text-destructive animate-fade-in font-medium">{errors.insuranceInterests}</p>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="feedback" className="text-sm font-semibold text-foreground">
-                  Additional Comments or Questions
-                </Label>
-                <Textarea
-                  id="feedback"
-                  placeholder="Tell us about your specific insurance needs or any questions you have..."
-                  value={formData.feedback}
-                  onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                  rows={5}
-                  className="bg-input border-2 border-border transition-smooth focus:border-primary focus-visible:ring-primary hover:border-primary resize-none text-base text-foreground placeholder:text-muted-foreground"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label htmlFor="documents" className="text-sm font-semibold text-foreground">
-                  Upload Supporting Documents (Optional)
-                </Label>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-2 border-border hover:border-primary transition-smooth"
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Choose Files
-                    </Button>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      Max 5MB per file. Supported: PDF, JPG, PNG, DOC
-                    </p>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  
-                  {uploadedFiles.length > 0 && (
-                    <div className="space-y-2">
-                      {uploadedFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-card border-2 border-border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            <FileText className="h-5 w-5 text-primary" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                              <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(index)}
-                            className="hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Supporting Documents (Optional)</Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload any relevant documents (Max 5MB)
+                </p>
+                
+                {uploadedFile ? (
+                  <div className="border rounded-lg p-3 bg-muted/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">{uploadedFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatFileSize(uploadedFile.size)}</p>
                         </div>
-                      ))}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                  
-                  {errors.documents && (
-                    <p className="text-sm text-destructive animate-fade-in font-medium">{errors.documents}</p>
-                  )}
-                </div>
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="mt-2">
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div
+                            className="bg-primary h-1.5 rounded-full transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    <input
+                      id="attachments"
+                      type="file"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                    <label
+                      htmlFor="attachments"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm font-medium">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOC, DOCX, JPG, PNG (max 5MB)
+                      </p>
+                    </label>
+                  </div>
+                )}
+                {errors.attachments && (
+                  <p className="text-sm text-destructive">{errors.attachments}</p>
+                )}
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-[1.02] active:scale-95 text-lg py-7 transition-smooth shadow-gold hover-shadow-gold font-bold border-2 border-primary"
                 disabled={submitFormMutation.isPending}
+                className="w-full"
+                size="lg"
               >
                 {submitFormMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Submitting...
-                  </>
-                ) : submitFormMutation.isSuccess ? (
-                  <>
-                    <CheckCircle2 className="mr-2 h-6 w-6" />
-                    Submitted Successfully!
                   </>
                 ) : (
                   <>
-                    <Send className="mr-2 h-6 w-6" />
+                    <Send className="mr-2 h-4 w-4" />
                     Submit Application
                   </>
                 )}
